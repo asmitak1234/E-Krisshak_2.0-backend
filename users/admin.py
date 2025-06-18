@@ -110,6 +110,7 @@ class SentContactMessageInline(admin.TabularInline):
     fk_name = 'sender'
     extra = 0
     verbose_name_plural = "Messages Sent"
+    readonly_fields = ['created_at']
     fields = ('email', 'subject', 'message', 'created_at', 'forwarded_to')
 
 
