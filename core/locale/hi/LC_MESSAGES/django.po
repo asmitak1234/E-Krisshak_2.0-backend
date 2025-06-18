@@ -1,0 +1,3 @@
+#: .\core\views.py:5
+msgid "Welcome to E-Krisshak 2.0 !"
+msgstr "E-Krisshak 2.0 में आपका स्वागत है!"
