@@ -5,8 +5,8 @@ from django.core.mail import send_mail
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,generics,permissions,serializers
-from .models import CustomUser,KrisshakProfile,BhooswamiProfile,StateAdminProfile,DistrictAdminProfile,Rating, Favorite
-from .serializers import RegisterSerializer, KrisshakProfileSerializer,BhooswamiProfileSerializer, FavoriteSerializer
+from .models import CustomUser,KrisshakProfile,BhooswamiProfile,StateAdminProfile,DistrictAdminProfile,Rating, Favorite, District, State
+from .serializers import RegisterSerializer, KrisshakProfileSerializer,BhooswamiProfileSerializer, FavoriteSerializer, DistrictSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated
@@ -15,6 +15,17 @@ from rest_framework.decorators import api_view
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+class DistrictsByStateView(APIView):
+    def get(self, request):
+        state_id = request.GET.get("state_id")
+        if not state_id:
+            return Response({"error": "state_id is required"}, status=400)
+
+        districts = District.objects.filter(state_id=state_id).order_by('name')
+        serializer = DistrictSerializer(districts, many=True)
+        return Response(serializer.data)
+    
+    
 class UserRoleAccessPermission(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         user = request.user

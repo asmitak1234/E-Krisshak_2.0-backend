@@ -1,10 +1,16 @@
 from rest_framework import serializers
-from .models import CustomUser, KrisshakProfile, BhooswamiProfile, StateAdminProfile, DistrictAdminProfile, Favorite
+from .models import CustomUser, KrisshakProfile, BhooswamiProfile, StateAdminProfile, DistrictAdminProfile, Favorite, District
 
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
 
+class DistrictSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = District
+        fields = ['id', 'name']
+
+        
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
