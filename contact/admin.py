@@ -6,6 +6,7 @@ from users.models import DistrictAdminProfile, StateAdminProfile
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(admin.ModelAdmin):
+    readonly_fields = ['created_at']
     list_display = ('name', 'email', 'sender_type', 'state', 'district', 'subject', 'forwarded_to', 'created_at')
     list_filter = ('sender_type', 'state', 'district', 'forwarded_to', 'created_at')
     search_fields = ('name', 'email', 'subject', 'message')
