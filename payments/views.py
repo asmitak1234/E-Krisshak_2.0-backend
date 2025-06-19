@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions
+from rest_framework import generics, permissions, serializers
 from django.contrib.auth import get_user_model
 from users.models import KrisshakProfile
 from .models import Payment
@@ -29,7 +29,18 @@ class PaymentCreateView(generics.CreateAPIView):
     serializer_class = PaymentCreateSerializer
 
     def perform_create(self, serializer):
+        data = serializer.validated_data
+        is_custom = data.get('is_custom_amount', False)
+
+        if not is_custom:
+            try:
+                profile = KrisshakProfile.objects.get(user=data['recipient'])
+                serializer.validated_data['amount'] = profile.price
+            except KrisshakProfile.DoesNotExist:
+                raise serializers.ValidationError({"recipient": "Recipient profile not found."})
+
         serializer.save(sender=self.request.user, status='pending')
+
 
 # 📄 Step 3: View your payments (sent or received)
 class PaymentListView(generics.ListAPIView):
@@ -45,43 +56,59 @@ class PaymentListView(generics.ListAPIView):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def create_razorpay_order(request):
-    """Generate Razorpay payment order including ₹11 platform fee"""
+    """Generate Razorpay payment order, supporting custom or profile-based price + ₹11 platform fee"""
     try:
-        base_amount = int(request.data['amount']) * 100  # Convert ₹ to paise
         recipient_id = request.data['recipient_id']
-        purpose = request.data.get('purpose', 'Krisshak Service')  # Ensure purpose is included
-        platform_fee = 1100  # ₹11 in paise
-        total_amount = base_amount + platform_fee  # Bhooswami pays (Krisshak price + ₹11 fee)
-
         recipient = User.objects.get(id=recipient_id)
 
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        is_custom = request.data.get('is_custom_amount', False)
+        platform_fee = 1100  # ₹11 in paise
 
+        # 🧠 Step 1: Determine base amount
+        if is_custom:
+            if 'amount' not in request.data:
+                return Response({"error": "Amount is required when using custom payment"}, status=400)
+            base_amount = int(float(request.data['amount']) * 100)  # ₹ → paise
+        else:
+            try:
+                profile = KrisshakProfile.objects.get(user=recipient)
+                base_amount = int(float(profile.price) * 100)  # ₹ → paise
+            except KrisshakProfile.DoesNotExist:
+                return Response({"error": "Krisshak profile not found"}, status=404)
+
+        # 💳 Step 2: Create Razorpay order
+        total_amount = base_amount + platform_fee
+        purpose = request.data.get('purpose', 'Krisshak Service')
+
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
         order_data = {
             "amount": total_amount,
             "currency": "INR",
             "receipt": f"txn_{request.user.id}_{recipient.id}",
             "payment_capture": 1,
-            "notes": {"purpose": purpose}  # Added purpose field
+            "notes": {"purpose": purpose}
         }
-
         razorpay_order = client.order.create(data=order_data)
 
-        # Store pending payment in DB
+        # 🗃️ Step 3: Store pending payment
         payment = Payment.objects.create(
             sender=request.user,
             recipient=recipient,
-            amount=(base_amount / 100),  # Only Krisshak's portion
-            platform_fee=(platform_fee / 100),  # ₹11 platform fee
+            is_custom_amount=is_custom,
+            amount=(base_amount / 100),
+            platform_fee=(platform_fee / 100),
             status='pending',
             external_payment_id=razorpay_order["id"],
-            purpose=purpose  # Store purpose explicitly in DB
+            purpose=purpose
         )
 
         return Response({
             "order_id": razorpay_order["id"],
             "key": settings.RAZORPAY_KEY_ID
         }, status=status.HTTP_201_CREATED)
+
+    except User.DoesNotExist:
+        return Response({"error": "Recipient not found"}, status=404)
 
     except Exception as e:
         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
