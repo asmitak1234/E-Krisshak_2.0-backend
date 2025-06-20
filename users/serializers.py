@@ -47,6 +47,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = CustomUser(**validated_data)
         user.set_password(validated_data['password'])
         user.save()
+
+        user_type = user.user_type
+
+        if user_type == "krisshak":
+            KrisshakProfile.objects.get_or_create(user=user)
+        elif user_type == "bhooswami":
+            BhooswamiProfile.objects.get_or_create(user=user)
+        elif user_type == "state_admin":
+            StateAdminProfile.objects.get_or_create(user=user)
+        elif user_type == "district_admin":
+            DistrictAdminProfile.objects.get_or_create(user=user)
+
         return user
 
 
