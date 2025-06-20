@@ -15,6 +15,12 @@ from rest_framework.decorators import api_view
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+import logging
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
+
+logger = logging.getLogger(__name__)
+
 class StateListView(APIView):
     permission_classes = [AllowAny]
 
@@ -174,23 +180,47 @@ class BhooswamiDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = BhooswamiProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
 class RegisterView(APIView):
     def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            otp = ''.join(random.choices(string.digits, k=6))
-            user.otp_code = otp
-            user.otp_expiry = timezone.now() + timedelta(minutes=10)
-            user.save()
-            send_mail(
-                subject="Verify Your Email (Ekrisshak 2.0)",
-                message=f"Your OTP is: {otp}",
-                from_email="ekrisshak2.0emails.and.help@gmail.com",
-                recipient_list=[user.email]
-            )
-            return Response({"message": "User created. OTP sent to email."}, status=201)
-        return Response(serializer.errors, status=400)
+        try:
+            logger.info("📨 Incoming registration data: %s", request.data)
+
+            serializer = RegisterSerializer(data=request.data)
+            if serializer.is_valid():
+                user = serializer.save()
+
+                # Generate OTP
+                otp = ''.join(random.choices(string.digits, k=6))
+                user.otp_code = otp
+                user.otp_expiry = timezone.now() + timedelta(minutes=10)
+                user.save()
+
+                # Try sending email
+                try:
+                    send_mail(
+                        subject="Verify Your Email (Ekrisshak 2.0)",
+                        message=f"Your OTP is: {otp}",
+                        from_email="ekrisshak2.0emails.and.help@gmail.com",
+                        recipient_list=[user.email]
+                    )
+                except Exception as e:
+                    logger.error("❌ Failed to send OTP email: %s", str(e))
+                    return Response({"error": "User created, but failed to send OTP email."}, status=500)
+
+                return Response({"message": "User created. OTP sent to email."}, status=201)
+
+            # Validation error
+            logger.warning("❌ Serializer errors: %s", serializer.errors)
+            return Response(serializer.errors, status=400)
+
+        except (DRFValidationError, DjangoValidationError) as e:
+            logger.exception("🔒 Validation exception during registration")
+            return Response({"error": "Invalid input."}, status=400)
+
+        except Exception as e:
+            logger.exception("🔥 Unexpected error during registration")
+            return Response({"error": "Internal server error."}, status=500)
 
 class VerifyOTPView(APIView):
     def post(self, request):
