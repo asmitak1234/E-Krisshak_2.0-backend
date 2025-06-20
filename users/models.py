@@ -164,9 +164,9 @@ class Rating(models.Model):
 class KrisshakProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     availability = models.BooleanField(default=False)
-    specialization = models.CharField(max_length=255)
+    specialization = models.CharField(max_length=255, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
-    experience = models.CharField(max_length=255)
+    experience = models.CharField(max_length=255, blank=True)
     ratings = models.DecimalField(max_digits=2, decimal_places=1, default=0)
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
     district = models.ForeignKey(District, on_delete=models.SET_NULL, null=True)
