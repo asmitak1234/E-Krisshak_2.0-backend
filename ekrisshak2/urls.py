@@ -28,9 +28,9 @@ urlpatterns = [
     path('api/calender/', include('calender.urls')),  # Calendar integration for events
     path('api/notifications/', include('notifications.urls')),  # Live alerts & WebSocket updates
     path('api/payments/', include('payments.urls')),  # Razorpay integration & transactions
-    path('core/', include('core.urls')),
+    path('api/core/', include('core.urls')),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
-    path('search/', include('search.urls')),
+    path('api/search/', include('search.urls')),
 ]
 
 if settings.DEBUG:

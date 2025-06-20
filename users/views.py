@@ -9,7 +9,7 @@ from .models import CustomUser,KrisshakProfile,BhooswamiProfile,StateAdminProfil
 from .serializers import RegisterSerializer, KrisshakProfileSerializer,BhooswamiProfileSerializer, FavoriteSerializer, DistrictSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 import json 
 from rest_framework.decorators import api_view
 from django.http import JsonResponse
@@ -220,22 +220,55 @@ class ForgotPasswordView(APIView):
             return Response({"error": "Email not found."}, status=404)
 
 class ResetPasswordView(APIView):
+    """
+    Handles:
+    - Authenticated users: no OTP needed; just supply new_password (in profile)
+    - Unauthenticated users (via email): needs OTP and email
+    """
+    permission_classes = [AllowAny]  # We’ll check inside manually
+
     def post(self, request):
-        email = request.data.get('email')
-        otp = request.data.get('otp')
-        new_password = request.data.get('new_password')
-        try:
-            user = CustomUser.objects.get(email=email)
-            if user.otp_code == otp and timezone.now() <= user.otp_expiry:
-                user.set_password(new_password)
-                user.otp_code = None
-                user.otp_expiry = None
-                user.save()
-                return Response({"message": "Password reset successfully."})
-            return Response({"error": "Invalid or expired OTP."}, status=400)
-        except CustomUser.DoesNotExist:
-            return Response({"error": "User not found."}, status=404)
-        
+        user = request.user if request.user.is_authenticated else None
+        data = request.data
+
+        new_password = data.get('new_password')
+
+        if request.user.is_authenticated:
+            # Logged-in user wants to change password from profile
+            if not new_password:
+                return Response({"error": "New password is required."}, status=400)
+
+            # Optional: validate current_password too
+            user.set_password(new_password)
+            user.save()
+            return Response({"message": "Password updated successfully."})
+
+        else:
+            # Public reset via email + OTP
+            email = data.get("email")
+            otp = data.get("otp")
+
+            if not email or not otp or not new_password:
+                return Response({"error": "Email, OTP, and new password are required."}, status=400)
+
+            try:
+                user = CustomUser.objects.get(email=email)
+
+                # Block admins from using public reset
+                if user.user_type in ["state_admin", "district_admin"]:
+                    return Response({"error": "Password reset not allowed for this role."}, status=403)
+
+                if user.otp_code == otp and timezone.now() <= user.otp_expiry:
+                    user.set_password(new_password)
+                    user.otp_code = None
+                    user.otp_expiry = None
+                    user.save()
+                    return Response({"message": "Password reset successfully."})
+                return Response({"error": "Invalid or expired OTP."}, status=400)
+
+            except CustomUser.DoesNotExist:
+                return Response({"error": "User not found."}, status=404)
+      
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
