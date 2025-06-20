@@ -22,7 +22,7 @@ urlpatterns = [
     path('rate-user/', rate_user, name='rate-user'),
     path("favorites/toggle/", toggle_favorite, name="toggle_favorite"),
     path("favorites/", get_favorites, name="get_favorites"),
-    path("api/districts/", DistrictsByStateView.as_view(), name="districts-by-state"),
+    path("districts/", DistrictsByStateView.as_view(), name="districts-by-state"),
 
     # Krisshak Views
     path('krisshaks/', FilteredKrisshakListView.as_view(), name='krisshak-list'),
