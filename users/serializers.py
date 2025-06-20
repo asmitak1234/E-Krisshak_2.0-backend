@@ -17,10 +17,12 @@ class DistrictSerializer(serializers.ModelSerializer):
 
         
 class RegisterSerializer(serializers.ModelSerializer):
-    
+    state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all(), write_only=True, required=False)
+    district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all(), write_only=True, required=False)
+
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'user_type','name','age','gender','phone_number','preferred_language','profile_picture']
+        fields = ['email', 'password', 'user_type','name','age','gender','phone_number','preferred_language','profile_picture','state','district']
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate_email(self, value):
@@ -44,20 +46,21 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        state = validated_data.pop("state", None)
+        district = validated_data.pop("district", None)
+
         user = CustomUser(**validated_data)
         user.set_password(validated_data['password'])
         user.save()
 
-        user_type = user.user_type
-
-        if user_type == "krisshak":
-            KrisshakProfile.objects.get_or_create(user=user)
-        elif user_type == "bhooswami":
-            BhooswamiProfile.objects.get_or_create(user=user)
-        elif user_type == "state_admin":
-            StateAdminProfile.objects.get_or_create(user=user)
-        elif user_type == "district_admin":
-            DistrictAdminProfile.objects.get_or_create(user=user)
+        if user.user_type == "krisshak":
+            KrisshakProfile.objects.create(user=user, state=state, district=district)
+        elif user.user_type == "bhooswami":
+            BhooswamiProfile.objects.create(user=user, state=state, district=district)
+        elif user.user_type == "state_admin":
+            StateAdminProfile.objects.create(user=user, state=state)
+        elif user.user_type == "district_admin":
+            DistrictAdminProfile.objects.create(user=user, district=district)
 
         return user
 
