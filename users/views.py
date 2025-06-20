@@ -15,11 +15,9 @@ from rest_framework.decorators import api_view
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-import logging
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
-logger = logging.getLogger(__name__)
 
 class StateListView(APIView):
     permission_classes = [AllowAny]
@@ -183,46 +181,41 @@ class BhooswamiDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class RegisterView(APIView):
     def post(self, request):
-        try:
-            logger.info("📨 Incoming registration data: %s", request.data)
+        print("🔥 Step 1: Incoming data:", request.data)
 
-            serializer = RegisterSerializer(data=request.data)
-            if serializer.is_valid():
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
                 user = serializer.save()
+                print("✅ Step 2: User saved:", user.email)
 
-                # Generate OTP
                 otp = ''.join(random.choices(string.digits, k=6))
                 user.otp_code = otp
                 user.otp_expiry = timezone.now() + timedelta(minutes=10)
                 user.save()
+                print("✅ Step 3: OTP set and saved")
 
-                # Try sending email
                 try:
-                    print("📬 Attempting to send OTP to:", user.email)
-                    response = send_mail(
+                    result = send_mail(
                         subject="Verify Your Email (Ekrisshak 2.0)",
                         message=f"Your OTP is: {otp}",
                         from_email="ekrisshak2.0emails.and.help@gmail.com",
                         recipient_list=[user.email]
                     )
-                    print("✅ OTP sent. send_mail() returned:", response)
-                except Exception as e:
-                    print("❌ Email send failed:", str(e))
+                    print("✅ Step 4: Email sent successfully:", result)
+                except Exception as email_error:
+                    print("📭 Step 4: Email sending failed:", str(email_error))
                     return Response({"error": "User created, but failed to send OTP email."}, status=500)
 
-                return Response({"message": "User created. OTP sent to email."}, status=201)
+                return Response({"message": "User created and OTP sent!"}, status=201)
 
-            # Validation error
-            logger.warning("❌ Serializer errors: %s", serializer.errors)
+            except Exception as e:
+                print("🚨 Step X: Exception after serializer.valid():", str(e))
+                return JsonResponse({"error": "Fatal error after user creation", "detail": str(e)}, status=500)
+
+        else:
+            print("❌ Step 0: Validation errors:", serializer.errors)
             return Response(serializer.errors, status=400)
-
-        except (DRFValidationError, DjangoValidationError) as e:
-            logger.exception("🔒 Validation exception during registration")
-            return Response({"error": "Invalid input."}, status=400)
-
-        except Exception as e:
-            logger.exception("🔥 Unexpected error during registration")
-            return Response({"error": "Internal server error."}, status=500)
 
 class VerifyOTPView(APIView):
     def post(self, request):
