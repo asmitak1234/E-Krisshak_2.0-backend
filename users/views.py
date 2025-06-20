@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status,generics,permissions,serializers
 from .models import CustomUser,KrisshakProfile,BhooswamiProfile,StateAdminProfile,DistrictAdminProfile,Rating, Favorite, District, State
-from .serializers import RegisterSerializer, KrisshakProfileSerializer,BhooswamiProfileSerializer, FavoriteSerializer, DistrictSerializer
+from .serializers import RegisterSerializer, KrisshakProfileSerializer,BhooswamiProfileSerializer, FavoriteSerializer, DistrictSerializer, StateSerializer
 from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -15,6 +15,14 @@ from rest_framework.decorators import api_view
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
+class StateListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        states = State.objects.all().order_by("name")
+        serializer = StateSerializer(states, many=True)
+        return Response(serializer.data)
+    
 class DistrictsByStateView(APIView):
     def get(self, request):
         state_id = request.GET.get("state_id")

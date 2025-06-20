@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, FilteredKrisshakListView,KrisshakProfileDetailUpdateView,FilteredBhooswamiListView,BhooswamiDetailView,RoleBasedLoginView, LogoutView , UpdateProfileView, rate_user, toggle_favorite, get_favorites, DistrictsByStateView
+from .views import RegisterView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, FilteredKrisshakListView,KrisshakProfileDetailUpdateView,FilteredBhooswamiListView,BhooswamiDetailView,RoleBasedLoginView, LogoutView , UpdateProfileView, rate_user, toggle_favorite, get_favorites, DistrictsByStateView, StateListView
 from rest_framework_simplejwt.views import TokenRefreshView ,TokenObtainPairView
 
 urlpatterns = [
@@ -22,6 +22,7 @@ urlpatterns = [
     path('rate-user/', rate_user, name='rate-user'),
     path("favorites/toggle/", toggle_favorite, name="toggle_favorite"),
     path("favorites/", get_favorites, name="get_favorites"),
+    path("states/", StateListView.as_view(), name="state-list"),
     path("districts/", DistrictsByStateView.as_view(), name="districts-by-state"),
 
     # Krisshak Views
