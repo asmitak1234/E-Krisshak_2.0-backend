@@ -165,7 +165,7 @@ class KrisshakProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     availability = models.BooleanField(default=False)
     specialization = models.CharField(max_length=255)
-    price = models.DecimalField(max_digits=10, decimal_places=2)
+    price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     experience = models.CharField(max_length=255)
     ratings = models.DecimalField(max_digits=2, decimal_places=1, default=0)
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
