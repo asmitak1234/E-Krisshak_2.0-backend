@@ -205,8 +205,8 @@ class KrisshakProfile(models.Model):
 
 class BhooswamiProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    land_area = models.DecimalField(max_digits=10, decimal_places=2)
-    land_location = models.CharField(max_length=255)
+    land_area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    land_location = models.CharField(max_length=255, null=True, blank=True)
     requirements = models.TextField()
     ratings = models.DecimalField(max_digits=2, decimal_places=1, default=0)
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
