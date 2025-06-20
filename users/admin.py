@@ -176,7 +176,7 @@ class BhooswamiProfileAdmin(admin.ModelAdmin):
             return qs.filter(user=user)
 
     def get_name(self, obj):
-        return obj.name
+        return obj.user.name if obj.user else "-"
     get_name.short_description = 'Name'
 
     readonly_fields = ("ratings",)
