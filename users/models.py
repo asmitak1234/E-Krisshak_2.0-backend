@@ -100,7 +100,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     def __str__(self):
-        return self.email
+        return f"{self.email} ({self.user_type})"
     
     def has_perm(self, perm, obj=None):
         return self.is_superuser
@@ -174,7 +174,10 @@ class KrisshakProfile(models.Model):
     upi_id = models.CharField(max_length=50, blank=True, null=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.price}"
+        if self.user:
+            return f"{self.user.email} - {self.price}"
+        return f"Krisshak #{self.id}"
+
 
     class Meta:
         verbose_name = "Krisshak"
@@ -208,6 +211,11 @@ class BhooswamiProfile(models.Model):
     ratings = models.DecimalField(max_digits=2, decimal_places=1, default=0)
     state = models.ForeignKey(State, on_delete=models.SET_NULL, null=True)
     district = models.ForeignKey(District, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        if self.user:
+            return self.user.email
+        return f"Bhooswami #{self.id}"
 
     class Meta:
         verbose_name = "Bhooswami"
