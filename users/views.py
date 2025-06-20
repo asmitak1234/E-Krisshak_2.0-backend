@@ -198,14 +198,16 @@ class RegisterView(APIView):
 
                 # Try sending email
                 try:
-                    send_mail(
+                    print("📬 Attempting to send OTP to:", user.email)
+                    response = send_mail(
                         subject="Verify Your Email (Ekrisshak 2.0)",
                         message=f"Your OTP is: {otp}",
                         from_email="ekrisshak2.0emails.and.help@gmail.com",
                         recipient_list=[user.email]
                     )
+                    print("✅ OTP sent. send_mail() returned:", response)
                 except Exception as e:
-                    logger.error("❌ Failed to send OTP email: %s", str(e))
+                    print("❌ Email send failed:", str(e))
                     return Response({"error": "User created, but failed to send OTP email."}, status=500)
 
                 return Response({"message": "User created. OTP sent to email."}, status=201)
