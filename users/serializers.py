@@ -1,9 +1,12 @@
 from rest_framework import serializers
 from .models import CustomUser, KrisshakProfile, BhooswamiProfile, StateAdminProfile, DistrictAdminProfile, Favorite, District, State
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
+
 
 class StateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -17,6 +20,19 @@ class DistrictSerializer(serializers.ModelSerializer):
 
         
 class RegisterSerializer(serializers.ModelSerializer):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        print("🚀 Incoming registration data:", request.data)  # Add this
+
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "User registered successfully."})
+        else:
+            print("❌ Validation errors:", serializer.errors)  # Add this
+            return Response(serializer.errors, status=400)
+        
     class Meta:
         model = CustomUser
         fields = ['email', 'password', 'user_type','name','age','gender','phone_number','preferred_language','profile_picture']
