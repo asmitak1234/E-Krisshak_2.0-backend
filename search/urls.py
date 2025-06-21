@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import seasonal_crop_suggestions, ai_crop_suggestions, get_smart_suggestions, search_bhooswamis,search_krisshaks
+from .views import seasonal_crop_suggestions, ai_crop_suggestions, get_smart_suggestions, search_bhooswamis,search_krisshaks,get_filtered_users
 
 urlpatterns = [
     path('seasonal-crops/', seasonal_crop_suggestions, name='seasonal-crops'),
@@ -7,4 +7,5 @@ urlpatterns = [
     path('search-suggestions/', get_smart_suggestions, name='search-suggestions'),
     path('search-krisshaks/', search_krisshaks, name='search-krisshaks'),
     path('search-bhooswamis/', search_bhooswamis, name='search-bhooswamis'),
+    path('get_filtered_users/', get_filtered_users, name='get-filtered-users'),
 ]
