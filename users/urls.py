@@ -1,8 +1,11 @@
 from django.urls import path
-from .views import RegisterView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, FilteredKrisshakListView,KrisshakProfileDetailUpdateView,FilteredBhooswamiListView,BhooswamiDetailView,RoleBasedLoginView, LogoutView , UpdateProfileView, rate_user, toggle_favorite, get_favorites, DistrictsByStateView, StateListView
+from .views import whoami,RegisterView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, FilteredKrisshakListView,KrisshakProfileDetailUpdateView,FilteredBhooswamiListView,BhooswamiDetailView,RoleBasedLoginView, LogoutView , UpdateProfileView, rate_user, toggle_favorite, get_favorites, DistrictsByStateView, StateListView
 from rest_framework_simplejwt.views import TokenRefreshView ,TokenObtainPairView
 
 urlpatterns = [
+
+    path("whoami/", whoami, name="whoami"),
+
     # Registration & Security
     path('register/', RegisterView.as_view(), name='register'),
     path('verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),

@@ -11,13 +11,23 @@ from django.contrib.auth import authenticate
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 import json 
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def whoami(request):
+    user = request.user
+    return Response({
+        "id": user.id,
+        "email": user.email,
+        "user_type": user.user_type,
+        "name": str(user),
+    })
 
 class StateListView(APIView):
     permission_classes = [AllowAny]
