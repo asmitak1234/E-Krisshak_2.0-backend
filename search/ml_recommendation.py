@@ -8,7 +8,7 @@ def get_krisshak_recommendations(bhooswami):
     
     # Fetch previous appointments for Bhooswami
     previous_krisshaks = Appointment.objects.filter(
-        bhooswami=bhooswami, status="confirmed"
+        bhooswami=bhooswami.user, status="confirmed"
     ).values_list("krisshak_id", flat=True)
 
     # Get all Krisshaks from the same district
@@ -21,7 +21,7 @@ def get_krisshak_recommendations(bhooswami):
             "ratings": krisshak.ratings,
             "specialization": krisshak.specialization,
             "previously_appointed": 1 if krisshak.id in previous_krisshaks else 0,
-            "matches_required_crops": 1 if bhooswami.requirements in krisshak.specialization else 0,
+            "matches_required_crops": 1 if bhooswami.requirements and bhooswami.requirements in (krisshak.specialization or "") else 0,
         }
         for krisshak in district_krisshaks
     ]
