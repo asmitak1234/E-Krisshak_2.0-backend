@@ -82,15 +82,28 @@ def get_smart_suggestions(request):
 @authentication_classes([TokenAuthentication])
 def search_krisshaks(request):
     """Suggest Krisshaks for Bhooswamis based on previous hiring & crop requirements."""
+
     if not request.user or not request.user.is_authenticated:
         return JsonResponse({"error": "Authentication required"}, status=401)
-    
+
     user = request.user
+
+    # 👇 Add this block immediately after setting `user`
+    from django.contrib.auth import get_user_model
+    CustomUser = get_user_model()
+    if isinstance(user, str):
+        try:
+            user = CustomUser.objects.get(email=user)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({"error": "Invalid user reference."}, status=400)
+
     try:
-        print("🧠 user =", request.user, "| type:", type(request.user))
+        print("🧠 user =", user, "| type:", type(user))
         bhooswami_profile = BhooswamiProfile.objects.get(user=user)
     except BhooswamiProfile.DoesNotExist:
         return JsonResponse({"error": "Bhooswami profile not found"}, status=404)
+
+    # ...rest of your logic
 
     required_crops = bhooswami_profile.requirements  # Fetch crop requirements
 
