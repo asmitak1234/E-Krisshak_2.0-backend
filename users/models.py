@@ -4,7 +4,7 @@ from django.utils import timezone
 import uuid
 from django.contrib.auth import get_user_model
 from users.constants.state_district_data import states_and_districts
-
+from django.conf import settings
 class State(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
@@ -216,7 +216,7 @@ class KrisshakProfile(models.Model):
 
 
 class BhooswamiProfile(models.Model):
-    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="bhooswamiprofile")
     land_area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     land_location = models.CharField(max_length=255, null=True, blank=True)
     requirements = models.TextField()
