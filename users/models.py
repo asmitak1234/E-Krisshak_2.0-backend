@@ -129,6 +129,10 @@ class StateAdminProfile(models.Model):
     class Meta:
         verbose_name = "State Admin"
 
+    def delete(self, *args, **kwargs):
+        self.user.delete()
+        super().delete(*args, **kwargs)
+
 class DistrictAdminProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     district = models.ForeignKey(District, on_delete=models.SET_NULL, null=True)
@@ -150,6 +154,10 @@ class DistrictAdminProfile(models.Model):
 
     class Meta:
         verbose_name = "District Admin"
+
+    def delete(self, *args, **kwargs):
+        self.user.delete()
+        super().delete(*args, **kwargs)
 
 class Rating(models.Model):
     """Stores individual ratings given by users."""
@@ -201,6 +209,10 @@ class KrisshakProfile(models.Model):
         if all_ratings:
             self.ratings = round(sum(all_ratings) / len(all_ratings), 1)
             self.save()
+    
+    def delete(self, *args, **kwargs):
+        self.user.delete()
+        super().delete(*args, **kwargs)
 
 
 class BhooswamiProfile(models.Model):
@@ -239,6 +251,9 @@ class BhooswamiProfile(models.Model):
             self.ratings = round(sum(all_ratings) / len(all_ratings), 1)
             self.save()
 
+    def delete(self, *args, **kwargs):
+        self.user.delete()
+        super().delete(*args, **kwargs)
 
 User = get_user_model()
 
