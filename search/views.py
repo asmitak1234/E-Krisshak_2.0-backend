@@ -96,7 +96,7 @@ def search_krisshaks(request):
     # Fetch previously hired Krisshaks
     previous_krisshaks = KrisshakProfile.objects.filter(
         user__in=Appointment.objects.filter(bhooswami=user, status='confirmed').values_list('krisshak_id', flat=True),
-        district=user.bhooswami_profile.district  # ✅ Restrict search to user's district
+        district=bhooswami_profile.district  # ✅ Restrict search to user's district
     )
 
     # Suggest Krisshaks whose specialization matches Bhooswami’s crop requirements
