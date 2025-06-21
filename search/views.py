@@ -87,6 +87,7 @@ def search_krisshaks(request):
     
     user = request.user
     try:
+        print("🧠 user =", request.user, "| type:", type(request.user))
         bhooswami_profile = BhooswamiProfile.objects.get(user=user)
     except BhooswamiProfile.DoesNotExist:
         return JsonResponse({"error": "Bhooswami profile not found"}, status=404)
