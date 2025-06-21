@@ -4,6 +4,9 @@ from users.models import KrisshakProfile, BhooswamiProfile, CustomUser, StateAdm
 from appointments.models import Appointment
 from .utils import get_current_season, get_favorable_crops, get_ai_crop_recommendations
 from search.ml_recommendation import get_krisshak_recommendations, get_bhooswami_recommendations
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import TokenAuthentication
 
 # 🔍 Seasonal Crop Suggestions
 def seasonal_crop_suggestions(request):
@@ -74,6 +77,9 @@ def get_smart_suggestions(request):
     }, safe=False)
 
 # ✅ Krisshak Search (with ML Recommendations)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
 def search_krisshaks(request):
     """Suggest Krisshaks for Bhooswamis based on previous hiring & crop requirements."""
     if not request.user or not request.user.is_authenticated:
@@ -110,6 +116,9 @@ def search_krisshaks(request):
     }, safe=False)
 
 # ✅ Bhooswami Search (with ML Recommendations)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+@authentication_classes([TokenAuthentication])
 def search_bhooswamis(request):
     """Suggest Bhooswamis for Krisshaks based on previous hiring & specialization."""
     user = request.user
