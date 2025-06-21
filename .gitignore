@@ -9,7 +9,8 @@ __pycache__/
 *.sqlite3
 db.sqlite3
 /media/
-/static/
+# /static/
+# !static/.keep
 /staticfiles/
 
 #Environments
