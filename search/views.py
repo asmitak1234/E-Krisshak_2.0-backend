@@ -76,6 +76,9 @@ def get_smart_suggestions(request):
 # ✅ Krisshak Search (with ML Recommendations)
 def search_krisshaks(request):
     """Suggest Krisshaks for Bhooswamis based on previous hiring & crop requirements."""
+    if not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+    
     user = request.user
     try:
         bhooswami_profile = BhooswamiProfile.objects.get(user=user)
