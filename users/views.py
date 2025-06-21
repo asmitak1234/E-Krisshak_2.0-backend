@@ -80,6 +80,8 @@ class UserRoleAccessPermission(permissions.BasePermission):
         return False
 
 class RoleBasedLoginView(APIView):
+    permission_classes = [AllowAny]
+    
     def post(self, request):
         role = request.data.get('role')
         username_or_email = request.data.get('username_or_email')
