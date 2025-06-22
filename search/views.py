@@ -176,6 +176,8 @@ def search_bhooswamis(request):
 
 
 # ✅ Filtering Users by District, Age, Specialization, Availability
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_filtered_users(request):
     """Allows admins & users to filter Krisshaks/Bhooswamis based on district & other properties."""
     
