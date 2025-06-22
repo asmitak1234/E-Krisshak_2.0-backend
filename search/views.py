@@ -69,11 +69,11 @@ def get_smart_suggestions(request):
     final_suggestions = list(previous_appointments) + list(seasonal_suggestions) + list(ai_suggestions) + list(required_crops_suggestions)
 
     return JsonResponse({
-        "previous_appointments": [krisshak.to_dict() for krisshak in previous_appointments] if previous_appointments else [],
-        "seasonal_suggestions": [krisshak.to_dict() for krisshak in seasonal_suggestions] if seasonal_suggestions else [],
-        "ai_suggestions": [krisshak.to_dict() for krisshak in ai_suggestions] if ai_suggestions else [],
-        "required_crops_suggestions": [krisshak.to_dict() for krisshak in required_crops_suggestions] if required_crops_suggestions else [],
-        "final_suggestions": [krisshak.to_dict() for krisshak in final_suggestions] if final_suggestions else [],
+        "previous_appointments": [krisshak.to_dict(request) for krisshak in previous_appointments] if previous_appointments else [],
+        "seasonal_suggestions": [krisshak.to_dict(request) for krisshak in seasonal_suggestions] if seasonal_suggestions else [],
+        "ai_suggestions": [krisshak.to_dict(request) for krisshak in ai_suggestions] if ai_suggestions else [],
+        "required_crops_suggestions": [krisshak.to_dict(request) for krisshak in required_crops_suggestions] if required_crops_suggestions else [],
+        "final_suggestions": [krisshak.to_dict(request) for krisshak in final_suggestions] if final_suggestions else [],
     }, safe=False)
 
 # ✅ Krisshak Search (with ML Recommendations)
@@ -130,9 +130,9 @@ def search_krisshaks(request):
             final_suggestions.append(k)
 
     return JsonResponse({
-        "previous_krisshaks": [krisshak.to_dict() for krisshak in previous_krisshaks] if previous_krisshaks else [],
-        "matching_krisshaks": [krisshak.to_dict() for krisshak in matching_krisshaks] if matching_krisshaks else [],
-        "ml_suggestions": [krisshak.to_dict() for krisshak in ml_suggestions] if ml_suggestions else [],
+        "previous_krisshaks": [krisshak.to_dict(request) for krisshak in previous_krisshaks] if previous_krisshaks else [],
+        "matching_krisshaks": [krisshak.to_dict(request) for krisshak in matching_krisshaks] if matching_krisshaks else [],
+        "ml_suggestions": [krisshak.to_dict(request) for krisshak in ml_suggestions] if ml_suggestions else [],
         "final_suggestions": [krisshak.to_dict(request) for krisshak in final_suggestions] if final_suggestions else [],
     }, safe=False)
 
@@ -168,9 +168,9 @@ def search_bhooswamis(request):
             final_suggestions.append(b)
 
     return JsonResponse({
-        "previous_bhooswamis": [bhooswami.to_dict() for bhooswami in previous_bhooswamis] if previous_bhooswamis else [],
-        "matching_bhooswamis": [bhooswami.to_dict() for bhooswami in matching_bhooswamis] if matching_bhooswamis else [],
-        "ml_suggestions": [bhooswami.to_dict() for bhooswami in ml_suggestions] if ml_suggestions else [],
+        "previous_bhooswamis": [bhooswami.to_dict(request) for bhooswami in previous_bhooswamis] if previous_bhooswamis else [],
+        "matching_bhooswamis": [bhooswami.to_dict(request) for bhooswami in matching_bhooswamis] if matching_bhooswamis else [],
+        "ml_suggestions": [bhooswami.to_dict(request) for bhooswami in ml_suggestions] if ml_suggestions else [],
         "final_suggestions": [bhooswami.to_dict(request) for bhooswami in final_suggestions] if final_suggestions else [],
     }, safe=False)
 
@@ -235,4 +235,4 @@ def get_filtered_users(request):
     # Sorting results
     queryset = queryset.order_by("-availability", "-ratings")  # ✅ Ensures available users appear first
 
-    return JsonResponse({"filtered_users": [user.to_dict() for user in queryset]}, safe=False)
+    return JsonResponse({"filtered_users": [user.to_dict(request) for user in queryset]}, safe=False)
