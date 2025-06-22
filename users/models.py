@@ -193,12 +193,13 @@ class KrisshakProfile(models.Model):
     def to_dict(self):
         return {
             "user_id": self.user.id,
+            "name":self.user.name,
             "username": self.user.email,
             "availability": self.availability,
             "specialization": self.specialization,
             "age": self.user.age,  # assumes age is stored
             "gender":self.user.gender,
-            "photo": self.user.profile_picture.url if self.user.profile_picture else "/media/default_user.png",
+            "profile_picture": self.user.get_profile_picture,
             "price": str(self.price),  # Convert to string for JSON
             "experience": self.experience,
             "ratings": float(self.ratings),
@@ -238,12 +239,13 @@ class BhooswamiProfile(models.Model):
     def to_dict(self):
         return {
             "user_id": self.user.id,
+            "name":self.user.name,
             "username": self.user.email,
             "land_area": str(self.land_area),  # Convert to string for JSON
             "land_location": self.land_location,
             "age": self.user.age,  # assumes age is stored
             "gender":self.user.gender,
-            "photo": self.user.profile_picture.url if self.user.profile_picture else "/media/default_user.png",
+            "profile_picture": self.user.get_profile_picture,
             "ratings": float(self.ratings),
             "requirements": self.requirements,
             "state": self.state.name if self.state else None,
