@@ -68,7 +68,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
-    @property
     def get_profile_picture(self, request=None):
         if self.profile_picture:
             url = self.profile_picture.url
