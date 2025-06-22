@@ -181,10 +181,11 @@ def search_bhooswamis(request):
 def get_filtered_users(request):
     """Allows admins & users to filter Krisshaks/Bhooswamis based on district & other properties."""
     
-    if not request.user or not request.user.is_authenticated:
+    user = request.user
+    if not user or not user.is_authenticated:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    user = request.user
+    
     district_id = request.GET.get("district_id")  # Filter by district
     age = request.GET.get("age") or None
     specialization = request.GET.get("specialization")
@@ -192,6 +193,8 @@ def get_filtered_users(request):
     user_type = request.GET.get("user_type") or None # Krisshak or Bhooswami
 
     # Base query: restrict results based on user type
+    queryset = None
+
     if user.user_type == 'krisshak':
         queryset = BhooswamiProfile.objects.filter(district=user.krisshakprofile.district)
     elif user.user_type == 'bhooswami':
@@ -201,9 +204,6 @@ def get_filtered_users(request):
             queryset = CustomUser.objects.filter(district=user.districtadminprofile.district)
             if user_type:
                 queryset = queryset.filter(user_type=user_type)
-            if age:
-                queryset = queryset.filter(age=int(age))
-
         except DistrictAdminProfile.DoesNotExist:
             return JsonResponse({"error": "District not found"}, status=404)
         
@@ -212,9 +212,6 @@ def get_filtered_users(request):
             queryset = CustomUser.objects.filter(district__state=user.stateadminprofile.state)
             if user_type:
                 queryset = queryset.filter(user_type=user_type)
-            if age:
-                queryset = queryset.filter(age=int(age))
-
         except StateAdminProfile.DoesNotExist:
             return JsonResponse({"error": "State not found"}, status=404)
     else:
@@ -225,16 +222,19 @@ def get_filtered_users(request):
         queryset = queryset.filter(district_id=district_id)
 
     if age:
-        queryset = queryset.filter(age=int(age))
+        if queryset.model == CustomUser:
+            queryset = queryset.filter(age=int(age))
+        else:
+            queryset = queryset.filter(user__age=int(age))
 
-    if specialization:
-        if hasattr(queryset.model, "specialization"):
-            queryset = queryset.filter(specialization__icontains=specialization)
+    if specialization and hasattr(queryset.model, "specialization"):
+        queryset = queryset.filter(specialization__icontains=specialization)
 
-    if availability:
-        queryset = queryset.filter(availability=True)  # ✅ Only show available users
+    if availability and hasattr(queryset.model, "availability"):
+        queryset = queryset.filter(availability=True)
 
-    # Sorting results
-    queryset = queryset.order_by("-availability", "-ratings")  # ✅ Ensures available users appear first
+    queryset = queryset.order_by("-availability", "-ratings") if hasattr(queryset.model, "ratings") else queryset
 
-    return JsonResponse({"filtered_users": [user.to_dict(request) for user in queryset]}, safe=False)
+    return JsonResponse({
+        "filtered_users": [user.to_dict(request) for user in queryset]
+    }, safe=False)
