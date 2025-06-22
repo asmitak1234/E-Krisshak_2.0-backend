@@ -133,7 +133,7 @@ def search_krisshaks(request):
         "previous_krisshaks": [krisshak.to_dict() for krisshak in previous_krisshaks] if previous_krisshaks else [],
         "matching_krisshaks": [krisshak.to_dict() for krisshak in matching_krisshaks] if matching_krisshaks else [],
         "ml_suggestions": [krisshak.to_dict() for krisshak in ml_suggestions] if ml_suggestions else [],
-        "final_suggestions": [krisshak.to_dict() for krisshak in final_suggestions] if final_suggestions else [],
+        "final_suggestions": [krisshak.to_dict(request) for krisshak in final_suggestions] if final_suggestions else [],
     }, safe=False)
 
 # ✅ Bhooswami Search (with ML Recommendations)
@@ -171,7 +171,7 @@ def search_bhooswamis(request):
         "previous_bhooswamis": [bhooswami.to_dict() for bhooswami in previous_bhooswamis] if previous_bhooswamis else [],
         "matching_bhooswamis": [bhooswami.to_dict() for bhooswami in matching_bhooswamis] if matching_bhooswamis else [],
         "ml_suggestions": [bhooswami.to_dict() for bhooswami in ml_suggestions] if ml_suggestions else [],
-        "final_suggestions": [bhooswami.to_dict() for bhooswami in final_suggestions] if final_suggestions else [],
+        "final_suggestions": [bhooswami.to_dict(request) for bhooswami in final_suggestions] if final_suggestions else [],
     }, safe=False)
 
 

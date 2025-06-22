@@ -69,12 +69,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
     @property
-    def get_profile_picture(self):
+    def get_profile_picture(self, request=None):
         if self.profile_picture:
-            return self.profile_picture.url
+            url = self.profile_picture.url
         elif self.gender == 'female':
-            return '/static/media/default_female.png'
-        return '/static/media/default_user.png'
+            url = '/static/media/default_female.png'
+        else:
+            url = '/static/media/default_user.png'
+
+        return request.build_absolute_uri(url) if request else url
+
 
     unique_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     is_email_verified = models.BooleanField(default=False)
@@ -189,7 +193,7 @@ class KrisshakProfile(models.Model):
     class Meta:
         verbose_name = "Krisshak"
     
-    def to_dict(self):
+    def to_dict(self, request=None):
         return {
             "user_id": self.user.id,
             "name":self.user.name,
@@ -198,7 +202,7 @@ class KrisshakProfile(models.Model):
             "specialization": self.specialization,
             "age": self.user.age,  # assumes age is stored
             "gender":self.user.gender,
-            "profile_picture": self.user.get_profile_picture,
+            "profile_picture": self.user.get_profile_picture(request),
             "price": str(self.price),  # Convert to string for JSON
             "experience": self.experience,
             "ratings": float(self.ratings),
@@ -235,7 +239,7 @@ class BhooswamiProfile(models.Model):
     class Meta:
         verbose_name = "Bhooswami"
 
-    def to_dict(self):
+    def to_dict(self, request=None):
         return {
             "user_id": self.user.id,
             "name":self.user.name,
@@ -244,7 +248,7 @@ class BhooswamiProfile(models.Model):
             "land_location": self.land_location,
             "age": self.user.age,  # assumes age is stored
             "gender":self.user.gender,
-            "profile_picture": self.user.get_profile_picture,
+            "profile_picture": self.user.get_profile_picture(request),
             "ratings": float(self.ratings),
             "requirements": self.requirements,
             "state": self.state.name if self.state else None,
