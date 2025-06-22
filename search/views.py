@@ -178,6 +178,10 @@ def search_bhooswamis(request):
 # ✅ Filtering Users by District, Age, Specialization, Availability
 def get_filtered_users(request):
     """Allows admins & users to filter Krisshaks/Bhooswamis based on district & other properties."""
+    
+    if not request.user or not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
     user = request.user
     district_id = request.GET.get("district_id")  # Filter by district
     age = request.GET.get("age") or None
