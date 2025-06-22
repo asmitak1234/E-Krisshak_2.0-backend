@@ -222,7 +222,8 @@ def get_filtered_users(request):
         queryset = queryset.filter(age=int(age))
 
     if specialization:
-        queryset = queryset.filter(Q(specialization__icontains=specialization))
+        if hasattr(queryset.model, "specialization"):
+            queryset = queryset.filter(specialization__icontains=specialization)
 
     if availability:
         queryset = queryset.filter(availability=True)  # ✅ Only show available users
