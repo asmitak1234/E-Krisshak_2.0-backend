@@ -40,6 +40,9 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS","").split(",")
 INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
+    'django.contrib.sites',
+
+    # my apps
     'users',
     'appointments',
     'contact',
@@ -48,6 +51,7 @@ INSTALLED_APPS = [
     'payments',
     'core',
     'search',
+
     'corsheaders',
     'channels',
     'django.contrib.admin',
@@ -60,6 +64,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
 
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
