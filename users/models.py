@@ -196,6 +196,9 @@ class KrisshakProfile(models.Model):
             "username": self.user.email,
             "availability": self.availability,
             "specialization": self.specialization,
+            "age": self.user.age,  # assumes age is stored
+            "gender":self.user.gender,
+            "photo": self.user.profile_picture.url if self.user.profile_picture else "/media/default_user.png",
             "price": str(self.price),  # Convert to string for JSON
             "experience": self.experience,
             "ratings": float(self.ratings),
@@ -216,7 +219,7 @@ class KrisshakProfile(models.Model):
 
 
 class BhooswamiProfile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="bhooswamiprofile")
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name="bhooswamiprofile")
     land_area = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     land_location = models.CharField(max_length=255, null=True, blank=True)
     requirements = models.TextField()
@@ -238,6 +241,9 @@ class BhooswamiProfile(models.Model):
             "username": self.user.email,
             "land_area": str(self.land_area),  # Convert to string for JSON
             "land_location": self.land_location,
+            "age": self.user.age,  # assumes age is stored
+            "gender":self.user.gender,
+            "photo": self.user.profile_picture.url if self.user.profile_picture else "/media/default_user.png",
             "ratings": float(self.ratings),
             "requirements": self.requirements,
             "state": self.state.name if self.state else None,

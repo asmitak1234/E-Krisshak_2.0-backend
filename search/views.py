@@ -120,7 +120,14 @@ def search_krisshaks(request):
 
     ml_suggestions = get_krisshak_recommendations(bhooswami_profile)
 
-    final_suggestions = list(previous_krisshaks) + list(matching_krisshaks) + list(ml_suggestions)
+    from itertools import chain
+
+    seen = set()
+    final_suggestions = []
+    for k in chain(previous_krisshaks, matching_krisshaks, ml_suggestions):
+        if k.user.id not in seen:  # assuming user.id is unique per profile
+            seen.add(k.user.id)
+            final_suggestions.append(k)
 
     return JsonResponse({
         "previous_krisshaks": [krisshak.to_dict() for krisshak in previous_krisshaks] if previous_krisshaks else [],
@@ -151,7 +158,14 @@ def search_bhooswamis(request):
 
     ml_suggestions = get_bhooswami_recommendations(user)
 
-    final_suggestions = list(previous_bhooswamis) + list(matching_bhooswamis) + list(ml_suggestions)
+    from itertools import chain
+
+    seen = set()
+    final_suggestions = []
+    for b in chain(previous_bhooswamis, matching_bhooswamis, ml_suggestions):
+        if b.user.id not in seen:
+            seen.add(b.user.id)
+            final_suggestions.append(b)
 
     return JsonResponse({
         "previous_bhooswamis": [bhooswami.to_dict() for bhooswami in previous_bhooswamis] if previous_bhooswamis else [],
@@ -166,10 +180,10 @@ def get_filtered_users(request):
     """Allows admins & users to filter Krisshaks/Bhooswamis based on district & other properties."""
     user = request.user
     district_id = request.GET.get("district_id")  # Filter by district
-    age = request.GET.get("age")
+    age = request.GET.get("age") or None
     specialization = request.GET.get("specialization")
     availability = request.GET.get("availability")  # Filter by availability
-    user_type = request.GET.get("user_type")  # Krisshak or Bhooswami
+    user_type = request.GET.get("user_type") or None # Krisshak or Bhooswami
 
     # Base query: restrict results based on user type
     if user.user_type == 'krisshak':
@@ -179,11 +193,22 @@ def get_filtered_users(request):
     elif user.user_type == 'district_admin':
         try:
             queryset = CustomUser.objects.filter(district=user.districtadminprofile.district)
+            if user_type:
+                queryset = queryset.filter(user_type=user_type)
+            if age:
+                queryset = queryset.filter(age=int(age))
+
         except DistrictAdminProfile.DoesNotExist:
             return JsonResponse({"error": "District not found"}, status=404)
+        
     elif user.user_type == 'state_admin':
         try:
             queryset = CustomUser.objects.filter(district__state=user.stateadminprofile.state)
+            if user_type:
+                queryset = queryset.filter(user_type=user_type)
+            if age:
+                queryset = queryset.filter(age=int(age))
+
         except StateAdminProfile.DoesNotExist:
             return JsonResponse({"error": "State not found"}, status=404)
     else:
