@@ -70,13 +70,16 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     @property
     def get_profile_picture(self):
-        """Returns the user's profile picture or default female image"""
+        from django.contrib.sites.models import Site
+        current_site = Site.objects.get_current()
+        base_url = f"https://{current_site.domain}"
+
         if self.profile_picture:
-            return self.profile_picture.url
+            return base_url + self.profile_picture.url
         elif self.gender == 'female':
-            return '/media/default_female.png'  # Default image
-        return '/media/default_user.png'  # General default image
-    
+            return base_url + '/media/default_female.png'
+        return base_url + '/media/default_user.png'
+
     unique_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     is_email_verified = models.BooleanField(default=False)
     otp_code = models.CharField(max_length=6, null=True, blank=True)
