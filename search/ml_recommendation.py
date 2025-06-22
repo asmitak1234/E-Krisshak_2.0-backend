@@ -28,18 +28,20 @@ def get_krisshak_recommendations(bhooswami):
 
     df = pd.DataFrame(data)
 
+    if df.shape[0] < 3:
+        return KrisshakProfile.objects.filter(id__in=df["krisshak_id"]).order_by("-ratings")
+
     # Train K-Nearest Neighbors model
-    model = KNeighborsClassifier(n_neighbors=3)
+    model = KNeighborsClassifier(n_neighbors=min(3, df.shape[0]))
     X = df[["ratings", "previously_appointed", "matches_required_crops"]]
     y = df["krisshak_id"]
     model.fit(X, y)
 
     # Predict for the **specific Bhooswami request**, not the entire dataset
-    user_input = [[bhooswami.ratings, 1, 1]]  # Simulating user query
+    user_input = [[bhooswami.ratings, 1, 1]]
     recommendations = model.predict(user_input)
 
     return KrisshakProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
-
 
 def get_bhooswami_recommendations(krisshak):
     """Suggests Bhooswamis based on previous appointments, expertise, and specialization."""
@@ -56,20 +58,23 @@ def get_bhooswami_recommendations(krisshak):
             "ratings": bhooswami.ratings,
             "requirements": bhooswami.requirements,
             "previously_appointed": 1 if bhooswami.id in previous_bhooswamis else 0,
-            "matches_specialization": 1 if krisshak.specialization in bhooswami.requirements else 0,
+            "matches_specialization": 1 if krisshak.specialization in (bhooswami.requirements or "") else 0,
         }
         for bhooswami in district_bhooswamis
     ]
 
     df = pd.DataFrame(data)
 
-    model = KNeighborsClassifier(n_neighbors=3)
+    if df.shape[0] < 3:
+        return BhooswamiProfile.objects.filter(id__in=df["bhooswami_id"]).order_by("-ratings")
+
+    model = KNeighborsClassifier(n_neighbors=min(3, df.shape[0]))
     X = df[["ratings", "previously_appointed", "matches_specialization"]]
     y = df["bhooswami_id"]
     model.fit(X, y)
 
     # Predict for the **specific Krisshak request**, not the entire dataset
-    user_input = [[krisshak.ratings, 1, 1]]  # Simulating user query
+    user_input = [[krisshak.ratings, 1, 1]]
     recommendations = model.predict(user_input)
 
     return BhooswamiProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
