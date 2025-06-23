@@ -7,6 +7,7 @@ from search.ml_recommendation import get_krisshak_recommendations, get_bhooswami
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
+from django.contrib.auth import get_user_model
 
 # 🔍 Seasonal Crop Suggestions
 def seasonal_crop_suggestions(request):
@@ -88,8 +89,7 @@ def search_krisshaks(request):
 
     user = request.user
 
-    # 👇 Add this block immediately after setting `user`
-    from django.contrib.auth import get_user_model
+   
     CustomUser = get_user_model()
     if isinstance(user, str):
         try:
@@ -142,24 +142,46 @@ def search_krisshaks(request):
 @authentication_classes([TokenAuthentication])
 def search_bhooswamis(request):
     """Suggest Bhooswamis for Krisshaks based on previous hiring & specialization."""
-    user = request.user
-    specialization = request.GET.get("specialization")  # Krisshak’s expertise
 
-    # Fetch Bhooswamis who previously appointed the Krisshak
+    if not request.user or not request.user.is_authenticated:
+        return JsonResponse({"error": "Authentication required"}, status=401)
+
+    user = request.user
+
+    # Align with your krisshak view: fallback if user is a string
+    CustomUser = get_user_model()
+    if isinstance(user, str):
+        try:
+            user = CustomUser.objects.get(email=user)
+        except CustomUser.DoesNotExist:
+            return JsonResponse({"error": "Invalid user reference."}, status=400)
+
+    # Ensure krisshak profile exists
+    try:
+        krisshak_profile = KrisshakProfile.objects.get(user=user)
+    except KrisshakProfile.DoesNotExist:
+        return JsonResponse({"error": "Krisshak profile not found"}, status=404)
+
+    specialization = krisshak_profile.specialization  # fallback if not in request
+    if not specialization:
+        specialization = request.GET.get("specialization") or ""
+
+    # Fetch Bhooswamis who previously appointed this Krisshak
     previous_bhooswamis = BhooswamiProfile.objects.filter(
-        user__in=Appointment.objects.filter(krisshak=user, status='confirmed').values_list('bhooswami_id', flat=True),
-        district=user.krisshakprofile.district  # ✅ Restrict search to user's district
+        user__in=Appointment.objects.filter(krisshak=user, status='confirmed')
+                                     .values_list('bhooswami_id', flat=True),
+        district=krisshak_profile.district
     )
 
-    # Suggest Bhooswamis whose requirements match Krisshak’s specialization
+    # Recommend based on matching requirements
     matching_bhooswamis = BhooswamiProfile.objects.filter(
-        Q(requirements__icontains=specialization)
-    ).order_by('-ratings')
+        Q(requirements__icontains=specialization),
+        district=krisshak_profile.district
+    ).order_by("-ratings")
 
-    ml_suggestions = get_bhooswami_recommendations(user)
+    ml_suggestions = get_bhooswami_recommendations(krisshak_profile)
 
-    from itertools import chain
-
+    # Combine and dedupe
     seen = set()
     final_suggestions = []
     for b in chain(previous_bhooswamis, matching_bhooswamis, ml_suggestions):
@@ -168,12 +190,11 @@ def search_bhooswamis(request):
             final_suggestions.append(b)
 
     return JsonResponse({
-        "previous_bhooswamis": [bhooswami.to_dict(request) for bhooswami in previous_bhooswamis] if previous_bhooswamis else [],
-        "matching_bhooswamis": [bhooswami.to_dict(request) for bhooswami in matching_bhooswamis] if matching_bhooswamis else [],
-        "ml_suggestions": [bhooswami.to_dict(request) for bhooswami in ml_suggestions] if ml_suggestions else [],
-        "final_suggestions": [bhooswami.to_dict(request) for bhooswami in final_suggestions] if final_suggestions else [],
+        "previous_bhooswamis": [b.to_dict(request) for b in previous_bhooswamis],
+        "matching_bhooswamis": [b.to_dict(request) for b in matching_bhooswamis],
+        "ml_suggestions": [b.to_dict(request) for b in ml_suggestions],
+        "final_suggestions": [b.to_dict(request) for b in final_suggestions],
     }, safe=False)
-
 
 # ✅ Filtering Users by District, Age, Specialization, Availability
 @api_view(["GET"])
