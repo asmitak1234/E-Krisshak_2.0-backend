@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from django.contrib.auth import get_user_model
+from itertools import chain
 
 # 🔍 Seasonal Crop Suggestions
 def seasonal_crop_suggestions(request):
@@ -120,7 +121,7 @@ def search_krisshaks(request):
 
     ml_suggestions = get_krisshak_recommendations(bhooswami_profile)
 
-    from itertools import chain
+    
 
     seen = set()
     final_suggestions = []
