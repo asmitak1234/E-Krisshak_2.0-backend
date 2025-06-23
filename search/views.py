@@ -197,39 +197,53 @@ def search_bhooswamis(request):
         "final_suggestions": [b.to_dict(request) for b in final_suggestions],
     }, safe=False)
 
-# ✅ Filtering Users by District, Age, Specialization, Availability
+# ✅ Filtering Users by District, Age, Specialization, Availability and other parameters
+
+def model_has_field(model, field_name):
+    return field_name in [f.name for f in model._meta.get_fields()]
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_filtered_users(request):
     """Allows admins & users to filter Krisshaks/Bhooswamis based on district & other properties."""
-    
+
     user = request.user
     if not user or not user.is_authenticated:
         return JsonResponse({"error": "Authentication required"}, status=401)
 
-    
-    district_id = request.GET.get("district_id")  # Filter by district
-    age = request.GET.get("age") or None
+    # Text filters (partial match)
     specialization = request.GET.get("specialization")
-    availability = request.GET.get("availability")  # Filter by availability
-    user_type = request.GET.get("user_type") or None # Krisshak or Bhooswami
+    requirements = request.GET.get("requirements")
+    land_location = request.GET.get("land_location")
 
-    # Base query: restrict results based on user type
-    queryset = None
+    # Number filters (with operator support)
+    age_min = request.GET.get("age_min")
+    age_max = request.GET.get("age_max")
+    experience_min = request.GET.get("experience_min")
+    experience_max = request.GET.get("experience_max")
+    land_area_min = request.GET.get("land_area_min")
+    land_area_max = request.GET.get("land_area_max")
+    price_min = request.GET.get("price_min")
+    price_max = request.GET.get("price_max")
 
-    if user.user_type == 'krisshak':
+    # Other filters
+    availability = request.GET.get("availability")
+    district_id = request.GET.get("district_id")
+    user_type = request.GET.get("user_type")
+
+    # Base queryset
+    if user.user_type == "krisshak":
         queryset = BhooswamiProfile.objects.filter(district=user.krisshakprofile.district)
-    elif user.user_type == 'bhooswami':
+    elif user.user_type == "bhooswami":
         queryset = KrisshakProfile.objects.filter(district=user.bhooswamiprofile.district)
-    elif user.user_type == 'district_admin':
+    elif user.user_type == "district_admin":
         try:
             queryset = CustomUser.objects.filter(district=user.districtadminprofile.district)
             if user_type:
                 queryset = queryset.filter(user_type=user_type)
         except DistrictAdminProfile.DoesNotExist:
             return JsonResponse({"error": "District not found"}, status=404)
-        
-    elif user.user_type == 'state_admin':
+    elif user.user_type == "state_admin":
         try:
             queryset = CustomUser.objects.filter(district__state=user.stateadminprofile.state)
             if user_type:
@@ -239,23 +253,59 @@ def get_filtered_users(request):
     else:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
-    # Apply filters dynamically
+    model = queryset.model
+
+    # Apply filters
+
     if district_id:
         queryset = queryset.filter(district_id=district_id)
 
-    if age:
-        if queryset.model == CustomUser:
-            queryset = queryset.filter(age=int(age))
+    if age_min:
+        if model == CustomUser:
+            queryset = queryset.filter(age__gte=int(age_min))
         else:
-            queryset = queryset.filter(user__age=int(age))
+            queryset = queryset.filter(user__age__gte=int(age_min))
+    if age_max:
+        if model == CustomUser:
+            queryset = queryset.filter(age__lte=int(age_max))
+        else:
+            queryset = queryset.filter(user__age__lte=int(age_max))
 
-    if specialization and hasattr(queryset.model, "specialization"):
+    if specialization and model_has_field(model, "specialization"):
         queryset = queryset.filter(specialization__icontains=specialization)
 
-    if availability and hasattr(queryset.model, "availability"):
+    if requirements and model_has_field(model, "requirements"):
+        queryset = queryset.filter(requirements__icontains=requirements)
+
+    if land_location and model_has_field(model, "land_location"):
+        queryset = queryset.filter(land_location__icontains=land_location)
+
+    if experience_min and model_has_field(model, "experience"):
+        queryset = queryset.filter(experience__gte=int(experience_min))
+    if experience_max and model_has_field(model, "experience"):
+        queryset = queryset.filter(experience__lte=int(experience_max))
+
+    if land_area_min and model_has_field(model, "land_area"):
+        queryset = queryset.filter(land_area__gte=float(land_area_min))
+    if land_area_max and model_has_field(model, "land_area"):
+        queryset = queryset.filter(land_area__lte=float(land_area_max))
+
+    if price_min and model_has_field(model, "price"):
+        queryset = queryset.filter(price__gte=float(price_min))
+    if price_max and model_has_field(model, "price"):
+        queryset = queryset.filter(price__lte=float(price_max))
+
+    if availability and model_has_field(model, "availability"):
         queryset = queryset.filter(availability=True)
 
-    queryset = queryset.order_by("-availability", "-ratings") if hasattr(queryset.model, "ratings") else queryset
+    # Ordering
+    ordering_fields = []
+    if model_has_field(model, "availability"):
+        ordering_fields.append("-availability")
+    if model_has_field(model, "ratings"):
+        ordering_fields.append("-ratings")
+    if ordering_fields:
+        queryset = queryset.order_by(*ordering_fields)
 
     return JsonResponse({
         "filtered_users": [user.to_dict(request) for user in queryset]
