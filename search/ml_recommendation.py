@@ -47,7 +47,7 @@ def get_bhooswami_recommendations(krisshak):
     """Suggests Bhooswamis based on previous appointments, expertise, and specialization."""
     
     previous_bhooswamis = Appointment.objects.filter(
-        krisshak=krisshak, status="confirmed"
+        krisshak=krisshak.user, status="confirmed"
     ).values_list("bhooswami_id", flat=True)
 
     district_bhooswamis = BhooswamiProfile.objects.filter(district=krisshak.district)
