@@ -173,7 +173,7 @@ class Rating(models.Model):
 
 class KrisshakProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
-    availability = models.BooleanField(default=False)
+    availability = models.BooleanField(default=True)
     specialization = models.CharField(max_length=255, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     experience = models.CharField(max_length=255, blank=True)
