@@ -18,17 +18,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated])
-def whoami(request):
-    user = request.user
-    return Response({
-        "id": user.id,
-        "email": user.email,
-        "user_type": user.user_type,
-        "name": str(user),
-    })
-
 class StateListView(APIView):
     permission_classes = [AllowAny]
 
@@ -246,6 +235,8 @@ class VerifyOTPView(APIView):
             return Response({"error": "User not found."}, status=404)
 
 class ForgotPasswordView(APIView):
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = request.data.get('email')
         try:
