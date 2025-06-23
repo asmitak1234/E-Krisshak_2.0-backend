@@ -3,7 +3,7 @@ from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from django.core.mail import EmailMessage
 from .models import Appointment, AppointmentRequest
-from .serializers import AppointmentSerializer
+from .serializers import AppointmentSerializer, AppointmentRequestSerializer
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.conf import settings
@@ -12,6 +12,8 @@ from io import BytesIO
 from reportlab.pdfgen import canvas
 from django.http import JsonResponse
 from django.core.mail import send_mail
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 class AppointmentListCreateView(generics.ListCreateAPIView):
     serializer_class = AppointmentSerializer
@@ -122,14 +124,71 @@ def request_appointment(request, bhooswami_id):
     return JsonResponse({"message": "Request sent successfully."})
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_requests(request):
-    """Fetch pending requests."""
     user = request.user
+
     if hasattr(user, 'krisshakprofile'):
-        requests = AppointmentRequest.objects.filter(krisshak=user, status='pending')
+        sent = AppointmentRequest.objects.filter(krisshak=user).order_by("-request_time")
+        received = AppointmentRequest.objects.filter(bhooswami=user).order_by("-request_time")
     elif hasattr(user, 'bhooswamiprofile'):
-        requests = AppointmentRequest.objects.filter(bhooswami=user, status='pending')
+        sent = AppointmentRequest.objects.filter(bhooswami=user).order_by("-request_time")
+        received = AppointmentRequest.objects.filter(krisshak=user).order_by("-request_time")
     else:
         return JsonResponse({"error": "Profile not found."}, status=404)
 
-    return JsonResponse({"requests": [req.krisshak.email if hasattr(user, 'bhooswamiprofile') else req.bhooswami.email for req in requests]})
+    return Response({
+        "sent_requests": AppointmentRequestSerializer(sent, many=True).data,
+        "received_requests": AppointmentRequestSerializer(received, many=True).data,
+    })
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def accept_request(request, request_id):
+    try:
+        appt_request = AppointmentRequest.objects.get(id=request_id, status='pending')
+    except AppointmentRequest.DoesNotExist:
+        return Response({"error": "Request not found or already handled."}, status=status.HTTP_404_NOT_FOUND)
+
+    if request.user != appt_request.bhooswami and request.user != appt_request.krisshak:
+        return Response({"error": "You are not authorized to accept this request."}, status=403)
+
+    appt_request.status = "accepted"
+    appt_request.save()
+
+    appointment = Appointment.objects.create(
+        krisshak=appt_request.krisshak,
+        bhooswami=appt_request.bhooswami,
+        date=now().date(),
+        time=now().time(),
+        status='confirmed',
+        payment_status='not_paid'
+    )
+
+    send_mail(
+        subject="Appointment Confirmed",
+        message=f"Appointment between {appointment.krisshak.email} and {appointment.bhooswami.email} is confirmed for today.",
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=[appointment.krisshak.email, appointment.bhooswami.email]
+    )
+
+    return Response({
+        "message": "Request accepted and appointment confirmed.",
+        "appointment": AppointmentSerializer(appointment).data
+    })
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def cancel_request(request, request_id):
+    try:
+        appt_request = AppointmentRequest.objects.get(id=request_id)
+    except AppointmentRequest.DoesNotExist:
+        return Response({"error": "Request not found."}, status=404)
+
+    user = request.user
+    if appt_request.krisshak != user and appt_request.bhooswami != user:
+        return Response({"error": "You are not authorized to cancel this request."}, status=403)
+
+    appt_request.delete()
+    return Response({"message": "Request canceled successfully."}, status=204)
