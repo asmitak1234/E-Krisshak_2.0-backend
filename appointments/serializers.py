@@ -18,3 +18,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
         model = Appointment
         fields = '__all__'
         read_only_fields = ['id', 'created_at', 'status']
+        extra_kwargs = {
+                'bhooswami': {'required': False},
+                'status': {'required': False},
+                'created_at': {'read_only': True},
+            }
+
