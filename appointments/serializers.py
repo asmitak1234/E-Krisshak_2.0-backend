@@ -14,6 +14,15 @@ class AppointmentSerializer(serializers.ModelSerializer):
     krisshak_email = serializers.CharField(source='krisshak.email', read_only=True)
     bhooswami_email = serializers.CharField(source='bhooswami.email', read_only=True)
 
+    krisshak_user_id = serializers.SerializerMethodField()
+    bhooswami_user_id = serializers.SerializerMethodField()
+
+    def get_krisshak_user_id(self, obj):
+        return obj.krisshak.user.id if obj.krisshak and obj.krisshak.user else None
+
+    def get_bhooswami_user_id(self, obj):
+        return obj.bhooswami.user.id if obj.bhooswami and obj.bhooswami.user else None
+
     class Meta:
         model = Appointment
         fields = '__all__'
