@@ -105,6 +105,9 @@ class FilteredKrisshakListView(generics.ListAPIView):
     serializer_class = KrisshakProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_context(self):
+        return {"request": self.request}
+    
     def get_queryset(self):
         user = self.request.user
 
@@ -130,7 +133,9 @@ class FilteredKrisshakListView(generics.ListAPIView):
 class FilteredBhooswamiListView(generics.ListAPIView):
     serializer_class = BhooswamiProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    def get_serializer_context(self):
+        return {"request": self.request}
+    
     def get_queryset(self):
         user = self.request.user
 
@@ -186,6 +191,8 @@ class KrisshakPublicDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return get_object_or_404(KrisshakProfile, user__id=self.kwargs["pk"])
+    def get_serializer_context(self):
+        return {"request": self.request}
     
 # ✅ Update your own Krisshak profile
 class KrisshakProfileUpdateView(generics.RetrieveUpdateAPIView):
@@ -210,7 +217,9 @@ class BhooswamiDetailView(generics.RetrieveAPIView):
     queryset = BhooswamiProfile.objects.all()
     serializer_class = BhooswamiProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    def get_serializer_context(self):
+        return {"request": self.request}
+    
 # ✅ Update your own Bhooswami profile
 class BhooswamiProfileUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = BhooswamiProfileSerializer

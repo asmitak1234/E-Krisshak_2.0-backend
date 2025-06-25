@@ -6,9 +6,15 @@ from django.core.exceptions import ValidationError
 import re
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
         fields = "__all__" 
+
+    def get_profile_picture(self, obj): 
+        request = self.context.get("request") 
+        return obj.get_profile_picture(request=request)
         
 class StateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -72,7 +78,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class KrisshakProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-
+    
     class Meta:
         model = KrisshakProfile
         fields = "__all__"
