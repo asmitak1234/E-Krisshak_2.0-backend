@@ -18,10 +18,10 @@ class AppointmentSerializer(serializers.ModelSerializer):
     bhooswami_user_id = serializers.SerializerMethodField()
 
     def get_krisshak_user_id(self, obj):
-        return obj.krisshak.user.id if obj.krisshak and obj.krisshak.user else None
+        return obj.krisshak.id if obj.krisshak else None
 
     def get_bhooswami_user_id(self, obj):
-        return obj.bhooswami.user.id if obj.bhooswami and obj.bhooswami.user else None
+        return obj.bhooswami.id if obj.bhooswami else None
 
     class Meta:
         model = Appointment
