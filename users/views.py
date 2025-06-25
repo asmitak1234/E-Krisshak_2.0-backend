@@ -153,31 +153,69 @@ class FilteredBhooswamiListView(generics.ListAPIView):
 
         return BhooswamiProfile.objects.filter(user=user)
 
-class KrisshakProfileDetailUpdateView(generics.RetrieveUpdateDestroyAPIView):
-    """Allow Krisshaks to view & update their profile details (including payment info)"""
+# class KrisshakProfileDetailUpdateView(generics.RetrieveUpdateDestroyAPIView):
+#     """Allow Krisshaks to view & update their profile details (including payment info)"""
+#     queryset = KrisshakProfile.objects.all()
+#     serializer_class = KrisshakProfileSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+
+#     def get_queryset(self):
+#         """Ensure Krisshaks can only update their own profile"""
+#         return KrisshakProfile.objects.filter(user=self.request.user)
+
+#     def perform_update(self, serializer):
+#         """Ensure bank details or UPI ID is provided"""
+#         account_number = serializer.validated_data.get("account_number")
+#         upi_id = serializer.validated_data.get("upi_id")
+
+#         if not account_number and not upi_id:
+#             raise serializers.ValidationError("Krisshaks must provide either a bank account number or UPI ID for payouts.")
+        
+#         serializer.save()
+
+
+# class BhooswamiDetailView(generics.RetrieveUpdateDestroyAPIView):
+#     queryset = BhooswamiProfile.objects.all()
+#     serializer_class = BhooswamiProfileSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+
+# ✅ View any Krisshak profile by ID (for Appointments, Search, etc.)
+class KrisshakPublicDetailView(generics.RetrieveAPIView):
     queryset = KrisshakProfile.objects.all()
     serializer_class = KrisshakProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        """Ensure Krisshaks can only update their own profile"""
-        return KrisshakProfile.objects.filter(user=self.request.user)
+# ✅ Update your own Krisshak profile
+class KrisshakProfileUpdateView(generics.RetrieveUpdateAPIView):
+    serializer_class = KrisshakProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return KrisshakProfile.objects.get(user=self.request.user)
 
     def perform_update(self, serializer):
-        """Ensure bank details or UPI ID is provided"""
         account_number = serializer.validated_data.get("account_number")
         upi_id = serializer.validated_data.get("upi_id")
 
         if not account_number and not upi_id:
-            raise serializers.ValidationError("Krisshaks must provide either a bank account number or UPI ID for payouts.")
-        
+            raise serializers.ValidationError(
+                "Krisshaks must provide either a bank account number or UPI ID for payouts."
+            )
         serializer.save()
 
-
-class BhooswamiDetailView(generics.RetrieveUpdateDestroyAPIView):
+# ✅ View any Bhooswami profile by ID
+class BhooswamiDetailView(generics.RetrieveAPIView):
     queryset = BhooswamiProfile.objects.all()
     serializer_class = BhooswamiProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+# ✅ Update your own Bhooswami profile
+class BhooswamiProfileUpdateView(generics.RetrieveUpdateAPIView):
+    serializer_class = BhooswamiProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return BhooswamiProfile.objects.get(user=self.request.user)
 
 
 class RegisterView(APIView):

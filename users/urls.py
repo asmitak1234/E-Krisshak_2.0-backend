@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import RegisterView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, FilteredKrisshakListView,KrisshakProfileDetailUpdateView,FilteredBhooswamiListView,BhooswamiDetailView,RoleBasedLoginView, LogoutView , UpdateProfileView, rate_user, toggle_favorite, get_favorites, DistrictsByStateView, StateListView
+from .views import RegisterView, VerifyOTPView, ForgotPasswordView, ResetPasswordView, FilteredKrisshakListView,KrisshakProfileUpdateView,KrisshakPublicDetailView,BhooswamiProfileUpdateView,FilteredBhooswamiListView,BhooswamiDetailView,RoleBasedLoginView, LogoutView , UpdateProfileView, rate_user, toggle_favorite, get_favorites, DistrictsByStateView, StateListView
 from rest_framework_simplejwt.views import TokenRefreshView ,TokenObtainPairView
 
 urlpatterns = [
@@ -28,10 +28,12 @@ urlpatterns = [
 
     # Krisshak Views
     path('krisshaks/', FilteredKrisshakListView.as_view(), name='krisshak-list'),
-    path('krisshaks/<int:pk>/', KrisshakProfileDetailUpdateView.as_view(), name='krisshak-detail'),
-    path('krisshak/profile/', KrisshakProfileDetailUpdateView.as_view(), name='krisshak-profile-update'),
+    path("krisshaks/<int:pk>/", KrisshakPublicDetailView.as_view(), name="krisshak-detail"),
+    path("krisshak/profile/", KrisshakProfileUpdateView.as_view(), name="krisshak-profile-update"),
 
-    # Bhooswami Views
+    # Bhooswami URLs
     path('bhooswamis/', FilteredBhooswamiListView.as_view(), name='bhooswami-list'),
-    path('bhooswamis/<int:pk>/', BhooswamiDetailView.as_view(), name='bhooswami-detail'),
-]
+    path("bhooswamis/<int:pk>/", BhooswamiDetailView.as_view(), name="bhooswami-detail"),
+    path("bhooswami/profile/", BhooswamiProfileUpdateView.as_view(), name="bhooswami-profile-update"),
+
+ ]
