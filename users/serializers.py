@@ -5,6 +5,11 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = "__all__" 
+        
 class StateSerializer(serializers.ModelSerializer):
     class Meta:
         model = State
@@ -66,11 +71,15 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class KrisshakProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
     class Meta:
         model = KrisshakProfile
-        fields = '__all__'
+        fields = "__all__"
 
 class BhooswamiProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
     class Meta:
         model = BhooswamiProfile
         fields = '__all__'
