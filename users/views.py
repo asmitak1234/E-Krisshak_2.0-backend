@@ -14,7 +14,7 @@ import json
 from rest_framework.decorators import api_view, permission_classes
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
+from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
@@ -181,10 +181,12 @@ class FilteredBhooswamiListView(generics.ListAPIView):
 
 # ✅ View any Krisshak profile by ID (for Appointments, Search, etc.)
 class KrisshakPublicDetailView(generics.RetrieveAPIView):
-    queryset = KrisshakProfile.objects.all()
     serializer_class = KrisshakProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_object(self):
+        return get_object_or_404(KrisshakProfile, user__id=self.kwargs["pk"])
+    
 # ✅ Update your own Krisshak profile
 class KrisshakProfileUpdateView(generics.RetrieveUpdateAPIView):
     serializer_class = KrisshakProfileSerializer
