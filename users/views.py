@@ -220,8 +220,8 @@ class BhooswamiDetailView(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return BhooswamiProfile.objects.get(user=self.request.user)
-
+        return get_object_or_404(BhooswamiProfile, user__id=self.kwargs["pk"])
+    
     def get_serializer_context(self):
         return {"request": self.request}
     
