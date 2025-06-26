@@ -197,7 +197,7 @@ def cancel_request(request, request_id):
         return Response({"error": "Request not found."}, status=404)
 
     user = request.user
-    if appt_request.krisshak != user and appt_request.bhooswami != user:
+    if appt_request.sender != user and appt_request.recipient != user:
         return Response({"error": "You are not authorized to cancel this request."}, status=403)
 
     appt_request.delete()

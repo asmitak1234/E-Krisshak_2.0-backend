@@ -138,10 +138,14 @@ import dj_database_url
 DATABASES = {
     'default': dj_database_url.parse(
         os.getenv("DATABASE_URL"),
-        engine="django.db.backends.mysql"
+        engine="django.db.backends.mysql",
     )
 }
 
+DATABASES["default"]["OPTIONS"] = {
+    "charset": "utf8mb4",
+    "init_command": "SET NAMES 'utf8mb4'"
+}
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
