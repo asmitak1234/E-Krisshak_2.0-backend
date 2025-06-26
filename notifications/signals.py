@@ -165,23 +165,32 @@ def notify_new_notice(sender, instance, created, **kwargs):
 # 🔔 **Trigger Notification When a New Appointment Request is Created**
 @receiver(post_save, sender=AppointmentRequest)
 def notify_appointment_request(sender, instance, created, **kwargs):
-    if created:
-        notif = Notification.objects.create(
-            recipient=instance.bhooswami,  # ✅ Notify Bhooswami about the request
-            sender=instance.krisshak,
-            notification_type="requests",
-            title="🔔 New Appointment Request",
-            message=f"{instance.krisshak.name} has requested an appointment on {instance.date.strftime('%b %d')} at {instance.time.strftime('%I:%M %p')}.",
-        )
+    if not created:
+        return
 
-        async_to_sync(channel_layer.group_send)(
-            f"user_{notif.recipient.id}",
-            {
-                "type": "send.notification",
-                "data": {
-                    "title": notif.title,
-                    "message": notif.message,
-                    "timestamp": notif.created_at.isoformat(),
-                },
+    recipient = instance.recipient
+    sender_user = instance.sender
+
+    # Optional: Customize the message based on who the recipient is
+    role = "Krisshak" if sender_user.user_type == "krisshak" else "Bhooswami"
+
+    notif = Notification.objects.create(
+        recipient=recipient,
+        sender=sender_user,
+        notification_type="requests",
+        title="🔔 New Appointment Request",
+        message=f"{sender_user.name} ({role}) has requested an appointment.",
+    )
+
+    async_to_sync(channel_layer.group_send)(
+        f"user_{recipient.id}",
+        {
+            "type": "send.notification",
+            "data": {
+                "title": notif.title,
+                "message": notif.message,
+                "timestamp": notif.created_at.isoformat(),
             },
-        )
+        },
+    )
+
