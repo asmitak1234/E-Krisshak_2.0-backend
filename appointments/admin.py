@@ -32,10 +32,10 @@ class AppointmentAdmin(admin.ModelAdmin):
     get_district.short_description = 'District'
 
 class AppointmentRequestAdmin(admin.ModelAdmin):
-    list_display = ('id', 'krisshak', 'bhooswami', 'status', 'request_time')
+    list_display = ('id', 'sender', 'recipient', 'status', 'request_time')
     ordering = ('-request_time',)
     list_filter = ('status',)
-    search_fields = ('krisshak__email', 'bhooswami__email')
+    search_fields = ('sender__email', 'recipient__email')
 
 admin.site.register(Appointment, AppointmentAdmin)
 admin.site.register(AppointmentRequest, AppointmentRequestAdmin)
