@@ -88,7 +88,7 @@ class BhooswamiProfileSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = BhooswamiProfile
-        fields = '__all__'
+        fields = "__all__"
 
 class StateAdminProfileSerializer(serializers.ModelSerializer):
     class Meta:
