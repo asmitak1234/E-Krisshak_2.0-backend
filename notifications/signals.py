@@ -171,7 +171,7 @@ def notify_appointment_request(sender, instance, created, **kwargs):
             sender=instance.krisshak,
             notification_type="requests",
             title="🔔 New Appointment Request",
-            message=f"{instance.krisshak.full_name} has requested an appointment on {instance.date.strftime('%b %d')} at {instance.time.strftime('%I:%M %p')}.",
+            message=f"{instance.krisshak.name} has requested an appointment on {instance.date.strftime('%b %d')} at {instance.time.strftime('%I:%M %p')}.",
         )
 
         async_to_sync(channel_layer.group_send)(
