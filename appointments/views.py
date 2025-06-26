@@ -5,6 +5,7 @@ from django.core.mail import EmailMessage
 from .models import Appointment, AppointmentRequest
 from .serializers import AppointmentSerializer, AppointmentRequestSerializer
 from django.shortcuts import get_object_or_404
+from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 from django.conf import settings
 import json
@@ -107,8 +108,12 @@ class AppointmentRetrieveUpdateView(generics.RetrieveUpdateAPIView):
 @permission_classes([IsAuthenticated])
 def request_appointment(request, user_id):
     """Universal: either party can initiate a request to the other."""
+    
     requester = request.user
-    recipient = get_object_or_404(settings.AUTH_USER_MODEL, id=user_id)
+
+    User = get_user_model()
+    recipient = get_object_or_404(User, id=user_id)
+
 
     if requester == recipient:
         return JsonResponse({"error": "You cannot send a request to yourself."}, status=400)
