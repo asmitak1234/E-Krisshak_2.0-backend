@@ -5,20 +5,17 @@ from datetime import timedelta
 from django.utils.timezone import now
 
 class AppointmentRequest(models.Model):
-    """Tracks requests from Krisshaks to Bhooswamis."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, unique=True)
-    krisshak = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='krisshak_requests')
-    bhooswami = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bhooswami_requests')
+    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_requests')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='received_requests')
     status = models.CharField(max_length=20, choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('expired', 'Expired')], default='pending')
     request_time = models.DateTimeField(auto_now_add=True)
 
     def is_expired(self):
-        """Check if the request is expired (more than 2 days old)."""
         return now() > self.request_time + timedelta(days=2)
-    
-    class Meta:
-        verbose_name = "Appointment Requests"
 
+    class Meta:
+        verbose_name = "Appointment Request"
 
 class Appointment(models.Model):
     """Stores confirmed appointments between Krisshaks & Bhooswamis."""

@@ -107,62 +107,43 @@ class AppointmentRetrieveUpdateView(generics.RetrieveUpdateAPIView):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def request_appointment(request, user_id):
-    """Universal: either party can initiate a request to the other."""
-    
-    requester = request.user
-
+    sender = request.user
     User = get_user_model()
     recipient = get_object_or_404(User, id=user_id)
 
-
-    if requester == recipient:
+    if sender == recipient:
         return JsonResponse({"error": "You cannot send a request to yourself."}, status=400)
 
-    # Determine who is the Krisshak and Bhooswami
-    if requester.user_type == 'krisshak' and recipient.user_type == 'bhooswami':
-        krisshak, bhooswami = requester, recipient
-    elif requester.user_type == 'bhooswami' and recipient.user_type == 'krisshak':
-        krisshak, bhooswami = recipient, requester
-    else:
-        return JsonResponse({"error": "Invalid appointment pairing."}, status=400)
-
     existing_request = AppointmentRequest.objects.filter(
-        krisshak=krisshak, bhooswami=bhooswami, status='pending'
+        sender=sender, recipient=recipient, status='pending'
     ).order_by('-request_time').first()
 
     if existing_request and not existing_request.is_expired():
         return JsonResponse({"error": "Request already sent. Try again after 2 days."}, status=400)
 
-    AppointmentRequest.objects.create(krisshak=krisshak, bhooswami=bhooswami)
+    AppointmentRequest.objects.create(sender=sender, recipient=recipient)
 
     send_mail(
         subject="New Appointment Request",
-        message=f"{requester.email} has requested an appointment with {recipient.email}.",
+        message=f"{sender.email} has requested an appointment with you.",
         from_email=settings.DEFAULT_FROM_EMAIL,
         recipient_list=[recipient.email],
     )
 
     return JsonResponse({"message": "Appointment request sent."})
 
-
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def get_requests(request):
     user = request.user
-
-    if hasattr(user, 'krisshakprofile'):
-        sent = AppointmentRequest.objects.filter(krisshak=user).order_by("-request_time")
-        received = AppointmentRequest.objects.filter(bhooswami=user).order_by("-request_time")
-    elif hasattr(user, 'bhooswamiprofile'):
-        sent = AppointmentRequest.objects.filter(bhooswami=user).order_by("-request_time")
-        received = AppointmentRequest.objects.filter(krisshak=user).order_by("-request_time")
-    else:
-        return JsonResponse({"error": "Profile not found."}, status=404)
+    sent = AppointmentRequest.objects.filter(sender=user).order_by("-request_time")
+    received = AppointmentRequest.objects.filter(recipient=user).order_by("-request_time")
 
     return Response({
         "sent_requests": AppointmentRequestSerializer(sent, many=True).data,
         "received_requests": AppointmentRequestSerializer(received, many=True).data,
     })
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -170,17 +151,24 @@ def accept_request(request, request_id):
     try:
         appt_request = AppointmentRequest.objects.get(id=request_id, status='pending')
     except AppointmentRequest.DoesNotExist:
-        return Response({"error": "Request not found or already handled."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Request not found or already handled."}, status=404)
 
-    if request.user != appt_request.bhooswami and request.user != appt_request.krisshak:
+    user = request.user
+    if user != appt_request.recipient:
         return Response({"error": "You are not authorized to accept this request."}, status=403)
 
-    appt_request.status = "accepted"
+    appt_request.status = 'accepted'
     appt_request.save()
 
+    # Determine who is the krisshak/bhooswami based on roles
+    if appt_request.sender.user_type == 'krisshak':
+        krisshak, bhooswami = appt_request.sender, appt_request.recipient
+    else:
+        krisshak, bhooswami = appt_request.recipient, appt_request.sender
+
     appointment = Appointment.objects.create(
-        krisshak=appt_request.krisshak,
-        bhooswami=appt_request.bhooswami,
+        krisshak=krisshak,
+        bhooswami=bhooswami,
         date=now().date(),
         time=now().time(),
         status='confirmed',
@@ -189,15 +177,16 @@ def accept_request(request, request_id):
 
     send_mail(
         subject="Appointment Confirmed",
-        message=f"Appointment between {appointment.krisshak.email} and {appointment.bhooswami.email} is confirmed for today.",
+        message=f"Appointment between {krisshak.email} and {bhooswami.email} is confirmed for today.",
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[appointment.krisshak.email, appointment.bhooswami.email]
+        recipient_list=[krisshak.email, bhooswami.email]
     )
 
     return Response({
         "message": "Request accepted and appointment confirmed.",
         "appointment": AppointmentSerializer(appointment).data
     })
+
 
 @api_view(["DELETE"])
 @permission_classes([IsAuthenticated])
