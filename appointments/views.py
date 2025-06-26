@@ -103,25 +103,41 @@ class AppointmentRetrieveUpdateView(generics.RetrieveUpdateAPIView):
         return self.partial_update(request, *args, **kwargs)
 
 
-def request_appointment(request, bhooswami_id):
-    """Krisshaks can request Bhooswamis for an appointment."""
-    krisshak = request.user
-    bhooswami = get_object_or_404(settings.AUTH_USER_MODEL, id=bhooswami_id)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def request_appointment(request, user_id):
+    """Universal: either party can initiate a request to the other."""
+    requester = request.user
+    recipient = get_object_or_404(settings.AUTH_USER_MODEL, id=user_id)
 
-    existing_request = AppointmentRequest.objects.filter(krisshak=krisshak, bhooswami=bhooswami, status='pending').order_by('-request_time').first()
+    if requester == recipient:
+        return JsonResponse({"error": "You cannot send a request to yourself."}, status=400)
+
+    # Determine who is the Krisshak and Bhooswami
+    if requester.user_type == 'krisshak' and recipient.user_type == 'bhooswami':
+        krisshak, bhooswami = requester, recipient
+    elif requester.user_type == 'bhooswami' and recipient.user_type == 'krisshak':
+        krisshak, bhooswami = recipient, requester
+    else:
+        return JsonResponse({"error": "Invalid appointment pairing."}, status=400)
+
+    existing_request = AppointmentRequest.objects.filter(
+        krisshak=krisshak, bhooswami=bhooswami, status='pending'
+    ).order_by('-request_time').first()
+
     if existing_request and not existing_request.is_expired():
         return JsonResponse({"error": "Request already sent. Try again after 2 days."}, status=400)
 
-    appointment_request = AppointmentRequest.objects.create(krisshak=krisshak, bhooswami=bhooswami, status='pending')
+    AppointmentRequest.objects.create(krisshak=krisshak, bhooswami=bhooswami)
 
     send_mail(
         subject="New Appointment Request",
-        message=f"{krisshak.email} has requested an appointment. You can review it in your Requests section.",
+        message=f"{requester.email} has requested an appointment with {recipient.email}.",
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[bhooswami.email]
+        recipient_list=[recipient.email],
     )
 
-    return JsonResponse({"message": "Request sent successfully."})
+    return JsonResponse({"message": "Appointment request sent."})
 
 
 @api_view(["GET"])
