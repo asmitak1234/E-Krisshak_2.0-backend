@@ -191,6 +191,7 @@ class KrisshakPublicDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         return get_object_or_404(KrisshakProfile, user__id=self.kwargs["pk"])
+    
     def get_serializer_context(self):
         return {"request": self.request}
     
@@ -214,9 +215,13 @@ class KrisshakProfileUpdateView(generics.RetrieveUpdateAPIView):
 
 # ✅ View any Bhooswami profile by ID
 class BhooswamiDetailView(generics.RetrieveAPIView):
-    queryset = BhooswamiProfile.objects.all()
+    
     serializer_class = BhooswamiProfileSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_object(self):
+        return BhooswamiProfile.objects.get(user=self.request.user)
+
     def get_serializer_context(self):
         return {"request": self.request}
     
