@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.utils.timezone import now
 from django.conf import settings
 import json
+from django.db.models import Q
 from io import BytesIO
 from reportlab.pdfgen import canvas
 from django.http import JsonResponse
@@ -23,11 +24,11 @@ class AppointmentListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
 
-        if user.user_type == 'krisshak':
-            return Appointment.objects.filter(krisshak=user)
+        if user.user_type in ['krisshak', 'bhooswami']:
+            return Appointment.objects.filter(
+                Q(krisshak=user) | Q(bhooswami=user)
+            ).order_by('-date', '-time')
 
-        elif user.user_type == 'bhooswami':
-            return Appointment.objects.filter(bhooswami=user)
 
         elif user.user_type == 'district_admin':
             try:
