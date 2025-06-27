@@ -5,6 +5,10 @@ import uuid
 from django.contrib.auth import get_user_model
 from users.constants.state_district_data import states_and_districts
 from django.conf import settings
+from appointments.models import Appointment, AppointmentRequest
+from django.db.models import Q
+from django.utils.timezone import now
+
 class State(models.Model):
     name = models.CharField(max_length=100, unique=True)
 
@@ -21,6 +25,29 @@ class District(models.Model):
     def __str__(self):
         return f"{self.name}, {self.state.name}"
 
+def enrich_with_appointment_metadata(current_user, other_user):
+    metadata = {}
+
+    recent_request = AppointmentRequest.objects.filter(
+        sender=current_user,
+        recipient=other_user
+    ).order_by('-request_time').first()
+
+    if recent_request:
+        metadata['recent_request_status'] = recent_request.status
+        metadata['recent_request_time'] = recent_request.request_time
+
+    recent_appointment = Appointment.objects.filter(
+        Q(krisshak=current_user, bhooswami=other_user) |
+        Q(krisshak=other_user, bhooswami=current_user)
+    ).order_by('-created_at').first()
+
+    if recent_appointment:
+        metadata['appointment_status'] = recent_appointment.status
+        metadata['appointment_created_at'] = recent_appointment.created_at
+        metadata['appointment_payment_status'] = recent_appointment.payment_status
+
+    return metadata
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -193,21 +220,28 @@ class KrisshakProfile(models.Model):
         verbose_name = "Krisshak"
     
     def to_dict(self, request=None):
-        return {
+        base = {
             "user_id": self.user.id,
-            "name":self.user.name,
+            "name": self.user.name,
             "username": self.user.email,
             "availability": self.availability,
             "specialization": self.specialization,
-            "age": self.user.age,  # assumes age is stored
-            "gender":self.user.gender,
+            "age": self.user.age,
+            "gender": self.user.gender,
             "profile_picture": self.user.get_profile_picture(request),
-            "price": str(self.price),  # Convert to string for JSON
+            "price": str(self.price),
             "experience": self.experience,
             "ratings": float(self.ratings),
             "state": self.state.name if self.state else None,
             "district": self.district.name if self.district else None
         }
+
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            meta = enrich_with_appointment_metadata(request.user, self.user)
+            base.update(meta)
+
+        return base
+
     
     def calculate_average_rating(self):
         """Recalculate rating based on all received ratings."""
@@ -239,20 +273,27 @@ class BhooswamiProfile(models.Model):
         verbose_name = "Bhooswami"
 
     def to_dict(self, request=None):
-        return {
+        base = {
             "user_id": self.user.id,
-            "name":self.user.name,
+            "name": self.user.name,
             "username": self.user.email,
-            "land_area": str(self.land_area),  # Convert to string for JSON
+            "land_area": str(self.land_area),
             "land_location": self.land_location,
-            "age": self.user.age,  # assumes age is stored
-            "gender":self.user.gender,
+            "age": self.user.age,
+            "gender": self.user.gender,
             "profile_picture": self.user.get_profile_picture(request),
             "ratings": float(self.ratings),
             "requirements": self.requirements,
             "state": self.state.name if self.state else None,
             "district": self.district.name if self.district else None
         }
+
+        if request and hasattr(request, "user") and request.user.is_authenticated:
+            meta = enrich_with_appointment_metadata(request.user, self.user)
+            base.update(meta)
+
+        return base
+
 
     def calculate_average_rating(self):
         """Recalculate rating based on all received ratings."""
