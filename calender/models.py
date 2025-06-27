@@ -17,7 +17,7 @@ class CalendarEvent(models.Model):
     time = models.TimeField(null=True, blank=True)
 
     event_type = models.CharField(max_length=20, choices=EVENT_TYPE_CHOICES, default='manual')
-    related_appointment = models.OneToOneField(Appointment, on_delete=models.SET_NULL, null=True, blank=True)
+    related_appointment = models.ForeignKey(Appointment, on_delete=models.SET_NULL, null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
