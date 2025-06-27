@@ -137,8 +137,8 @@ def request_appointment(request, user_id):
 @permission_classes([IsAuthenticated])
 def get_requests(request):
     user = request.user
-    sent = AppointmentRequest.objects.filter(sender=user).order_by("-request_time")
-    received = AppointmentRequest.objects.filter(recipient=user).order_by("-request_time")
+    sent = AppointmentRequest.objects.filter(sender=user, status='pending').order_by("-request_time")
+    received = AppointmentRequest.objects.filter(recipient=user, status='pending').order_by("-request_time")
 
     return Response({
         "sent_requests": AppointmentRequestSerializer(sent, many=True).data,
