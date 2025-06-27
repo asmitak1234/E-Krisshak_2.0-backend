@@ -8,6 +8,9 @@ class AppointmentRequestSerializer(serializers.ModelSerializer):
     sender_user_id = serializers.SerializerMethodField()
     recipient_user_id = serializers.SerializerMethodField()
 
+    sender_user_type = serializers.CharField(source='sender.user_type')
+    recipient_user_type = serializers.CharField(source='recipient.user_type')
+    
     def get_sender_user_id(self, obj):
         return obj.sender.id
 
