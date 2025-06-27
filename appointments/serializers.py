@@ -29,6 +29,8 @@ class AppointmentSerializer(serializers.ModelSerializer):
     krisshak_user_id = serializers.SerializerMethodField()
     bhooswami_user_id = serializers.SerializerMethodField()
 
+    status = serializers.CharField(read_only=True)
+    
     def get_krisshak_user_id(self, obj):
         return obj.krisshak.id if obj.krisshak else None
 
