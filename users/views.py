@@ -98,7 +98,8 @@ class RoleBasedLoginView(APIView):
         return Response({
             "message": f"{role.capitalize()} login successful.",
             "token": token.key,
-            "preferred_language": user.preferred_language  # Return user's selected language
+            "preferred_language": user.preferred_language, # Return user's selected language
+            "user_id": user.id
         })
 
 class FilteredKrisshakListView(generics.ListAPIView):
