@@ -149,9 +149,12 @@ def get_requests(request):
 @permission_classes([IsAuthenticated])
 def accept_request(request, request_id):
     try:
-        appt_request = AppointmentRequest.objects.get(id=request_id, status='pending')
+        appt_request = AppointmentRequest.objects.get(id=request_id)
     except AppointmentRequest.DoesNotExist:
-        return Response({"error": "Request not found or already handled."}, status=404)
+        return Response({"error": "Request not found."}, status=404)
+
+    if appt_request.status != 'pending':
+        return Response({"error": "Request already handled."}, status=400)
 
     user = request.user
     if user != appt_request.recipient:
