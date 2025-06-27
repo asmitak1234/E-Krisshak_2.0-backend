@@ -155,7 +155,7 @@ def accept_request(request, request_id):
         return Response({"error": "Request not found."}, status=404)
 
     if appt_request.status != 'pending':
-        return Response({"error": "Request already handled."}, status=400)
+        return Response({"error": f"Request already marked as '{appt_request.status}'."}, status=400)
 
     user = request.user
     if user != appt_request.recipient:
