@@ -46,7 +46,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             validate_email(value)
         except ValidationError:
             raise serializers.ValidationError("Enter a valid email address.")
-        if CustomUser.objects.filter(email=value).exists():
+        
+        user = self.context.get("request").user
+        if CustomUser.objects.filter(email=value).exclude(id=user.id).exists():
             raise serializers.ValidationError("Email already exists.")
         return value
 
