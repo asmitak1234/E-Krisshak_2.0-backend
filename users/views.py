@@ -372,6 +372,7 @@ class UpdateProfileView(generics.RetrieveUpdateAPIView):
         try:
             user = serializer.save()
             print("✅ Image uploaded:", user.profile_picture.path)
+            print("✅ Saved image:", user.profile_picture.url)
         except Exception as e:
             print("🚨 Error saving profile update:", str(e))
             raise
