@@ -299,13 +299,17 @@ class ResetPasswordView(APIView):
         new_password = data.get('new_password')
 
         if request.user.is_authenticated:
-            # Logged-in user wants to change password from profile
-            if not new_password:
-                return Response({"error": "New password is required."}, status=400)
+            otp = data.get("otp")
+            if not new_password or not otp:
+                return Response({"error": "New password and OTP required."}, status=400)
 
-            # Optional: validate current_password too
-            user.set_password(new_password)
-            user.save()
+            if request.user.otp_code != otp or timezone.now() > request.user.otp_expiry:
+                return Response({"error": "Invalid or expired OTP."}, status=400)
+
+            request.user.set_password(new_password)
+            request.user.otp_code = None
+            request.user.otp_expiry = None
+            request.user.save()
             return Response({"message": "Password updated successfully."})
 
         else:
