@@ -343,7 +343,7 @@ class LogoutView(APIView):
         return Response({"message": "Logged out successfully."}, status=status.HTTP_200_OK)
     
 
-class UpdateProfileView(generics.UpdateAPIView):
+class UpdateProfileView(generics.RetrieveUpdateAPIView):
     """Allow users to update their profile, including gender & profile picture"""
     queryset = CustomUser.objects.all()
     serializer_class = RegisterSerializer
