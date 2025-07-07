@@ -367,10 +367,15 @@ class UpdateProfileView(generics.RetrieveUpdateAPIView):
     def get_serializer_context(self):
         return {"request": self.request}
     
+   
     def perform_update(self, serializer):
-        user = serializer.save()
-        print("📁 Image saved to:", user.profile_picture.path)
-        print("🌐 Image URL:", user.profile_picture.url)
+        try:
+            user = serializer.save()
+            print("✅ Image uploaded:", user.profile_picture.path)
+        except Exception as e:
+            print("🚨 Error saving profile update:", str(e))
+            raise
+
 
 
     
