@@ -303,13 +303,18 @@ class ResetPasswordView(APIView):
             if not new_password or not otp:
                 return Response({"error": "New password and OTP required."}, status=400)
 
-            if request.user.otp_code != otp or timezone.now() > request.user.otp_expiry:
+            try:
+                user = CustomUser.objects.get(id=request.user.id)
+            except CustomUser.DoesNotExist:
+                return Response({"error": "Authenticated user not found."}, status=404)
+
+            if user.otp_code != otp or timezone.now() > user.otp_expiry:
                 return Response({"error": "Invalid or expired OTP."}, status=400)
 
-            request.user.set_password(new_password)
-            request.user.otp_code = None
-            request.user.otp_expiry = None
-            request.user.save()
+            user.set_password(new_password)
+            user.otp_code = None
+            user.otp_expiry = None
+            user.save()
             return Response({"message": "Password updated successfully."})
 
         else:
