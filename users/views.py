@@ -355,6 +355,10 @@ class UpdateProfileView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         return self.request.user
     
+    def get_serializer_context(self):
+        return {"request": self.request}
+
+    
 @csrf_exempt
 def rate_user(request):
     """Allows users to rate Krisshaks or Bhooswamis."""
