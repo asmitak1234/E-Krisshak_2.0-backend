@@ -28,6 +28,7 @@ class DistrictSerializer(serializers.ModelSerializer):
 
         
 class RegisterSerializer(serializers.ModelSerializer):
+    profile_picture = serializers.SerializerMethodField()
     state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all(), write_only=True, required=False)
     district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all(), write_only=True, required=False)
 
@@ -36,6 +37,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['email', 'password', 'user_type','name','age','gender','phone_number','preferred_language','profile_picture','state','district']
         extra_kwargs = {'password': {'write_only': True}}
 
+    def get_profile_picture(self, obj):
+        request = self.context.get("request")
+        return obj.get_profile_picture(request=request)
+    
     def validate_email(self, value):
         try:
             validate_email(value)
