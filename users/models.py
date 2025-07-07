@@ -93,7 +93,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
     email = models.EmailField(unique=True)
     gender = models.CharField(max_length=10, choices=GENDER_CHOICES, null=True, blank=True)
-    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    
+    def rename_profile_picture(instance, filename):
+        ext = filename.split('.')[-1]
+        new_name = f"{instance.email.replace('@','_')}.{ext}"
+        return f"profile_pictures/{new_name}"
+
+    profile_picture = models.ImageField(upload_to=rename_profile_picture, null=True, blank=True)
 
     def get_profile_picture(self, request=None):
         if self.profile_picture:
