@@ -28,7 +28,7 @@ class DistrictSerializer(serializers.ModelSerializer):
 
         
 class RegisterSerializer(serializers.ModelSerializer):
-    profile_picture = serializers.SerializerMethodField()
+    profile_picture = serializers.ImageField(required=False)
     state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all(), write_only=True, required=False)
     district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all(), write_only=True, required=False)
 
