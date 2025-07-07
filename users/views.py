@@ -352,6 +352,9 @@ class UpdateProfileView(generics.UpdateAPIView):
     def get_queryset(self):
         return CustomUser.objects.filter(id=self.request.user.id)
 
+    def get_object(self):
+        return self.request.user
+    
 @csrf_exempt
 def rate_user(request):
     """Allows users to rate Krisshaks or Bhooswamis."""
