@@ -99,9 +99,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         if self.profile_picture:
             url = self.profile_picture.url
         elif self.gender == 'female':
-            url = '/static/media/default_female.png'
+            url = '/media/default_female.png'
         else:
-            url = '/static/media/default_user.png'
+            url = '/media/default_user.png'
 
         return request.build_absolute_uri(url) if request else url
 
