@@ -90,6 +90,12 @@ class KrisshakProfileSerializer(serializers.ModelSerializer):
         model = KrisshakProfile
         fields = "__all__"
 
+    def validate(self, attrs):
+        if not attrs.get("account_number") and not attrs.get("upi_id"):
+            raise serializers.ValidationError("Krisshaks must provide either a bank account number or UPI ID for payouts.")
+        return attrs
+
+
 class BhooswamiProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     
