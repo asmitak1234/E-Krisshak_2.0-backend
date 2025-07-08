@@ -1,4 +1,5 @@
 from django.http import JsonResponse
+from django.db.models import Case, When, Value, IntegerField, OuterRef, Exists
 from django.db.models import Q
 from users.models import KrisshakProfile, BhooswamiProfile, CustomUser, StateAdminProfile, DistrictAdminProfile
 from appointments.models import Appointment
@@ -33,6 +34,8 @@ def ai_crop_suggestions(request):
     return JsonResponse({"ai_crops": ai_crops}, safe=False)
 
 # 🔍 Smart Suggestions (ML + Seasonal + AI-Based)
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_smart_suggestions(request):
     """Suggests Krisshaks & Bhooswamis based on previous appointments, seasonal crops, and AI recommendations."""
     user = request.user
@@ -44,15 +47,30 @@ def get_smart_suggestions(request):
     phosphorus = request.GET.get("phosphorus")
     potassium = request.GET.get("potassium")
 
-    # Fetch Krisshaks previously appointed by the Bhooswami
-    previous_appointments = KrisshakProfile.objects.filter(
-        user__in=Appointment.objects.filter(bhooswami=user, status="confirmed").values_list("krisshak_id", flat=True)
+    confirmed_qs = Appointment.objects.filter(
+        status="confirmed",
+        krisshak=OuterRef("user")
     )
 
+    previous_appointments = KrisshakProfile.objects.filter(
+        user__in=confirmed_qs.values_list("krisshak_id", flat=True)
+    ).annotate(
+        has_confirmed=Value(1, output_field=IntegerField())
+    )
+
+    # Annotated suggestions
+    suggestions_base = KrisshakProfile.objects.annotate(
+        has_confirmed=Case(
+            When(Exists(confirmed_qs), then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        )
+    )
     # Suggest Krisshaks specializing in seasonal crops
-    seasonal_suggestions = KrisshakProfile.objects.filter(
-        Q(specialization__icontains=seasonal_crops[0]) | Q(specialization__icontains=seasonal_crops[1])
-    ).order_by("-ratings", "-availability")
+    seasonal_suggestions = suggestions_base.filter(
+        Q(specialization__icontains=seasonal_crops[0]) |
+        Q(specialization__icontains=seasonal_crops[1])
+    ).order_by("has_confirmed", "-availability", "-ratings")
 
     # Suggest Krisshaks based on AI-suggested crops (if provided)
     ai_suggestions = []
@@ -60,22 +78,22 @@ def get_smart_suggestions(request):
         ai_crops = get_ai_crop_recommendations(float(soil_ph), float(nitrogen), float(phosphorus), float(potassium))
         ai_suggestions = KrisshakProfile.objects.filter(
             Q(specialization__icontains=ai_crops[0]) | Q(specialization__icontains=ai_crops[1])
-        ).order_by("-ratings", "-availability")
+        ).order_by("has_confirmed", "-availability", "-ratings")
 
     # 🔍 Include Krisshaks that match Bhooswami's required crops
-    required_crops_suggestions = KrisshakProfile.objects.filter(
+    required_crops_suggestions = suggestions_base.filter(
         Q(specialization__icontains=user.bhooswamiprofile.requirements)
-    ).order_by("-ratings", "-availability")
+    ).order_by("has_confirmed", "-availability", "-ratings")
 
     # Merge lists in priority order
     final_suggestions = list(previous_appointments) + list(seasonal_suggestions) + list(ai_suggestions) + list(required_crops_suggestions)
 
     return JsonResponse({
-        "previous_appointments": [krisshak.to_dict(request) for krisshak in previous_appointments] if previous_appointments else [],
-        "seasonal_suggestions": [krisshak.to_dict(request) for krisshak in seasonal_suggestions] if seasonal_suggestions else [],
-        "ai_suggestions": [krisshak.to_dict(request) for krisshak in ai_suggestions] if ai_suggestions else [],
-        "required_crops_suggestions": [krisshak.to_dict(request) for krisshak in required_crops_suggestions] if required_crops_suggestions else [],
-        "final_suggestions": [krisshak.to_dict(request) for krisshak in final_suggestions] if final_suggestions else [],
+        "previous_appointments": [k.to_dict(request) for k in previous_appointments] if previous_appointments else [],
+        "seasonal_suggestions": [k.to_dict(request) for k in seasonal_suggestions] if seasonal_suggestions else [],
+        "ai_suggestions": [k.to_dict(request) for k in ai_suggestions] if ai_suggestions else [],
+        "required_crops_suggestions": [k.to_dict(request) for k in required_crops_suggestions] if required_crops_suggestions else [],
+        "final_suggestions": [k.to_dict(request) for k in final_suggestions] if final_suggestions else [],
     }, safe=False)
 
 # ✅ Krisshak Search (with ML Recommendations)
@@ -104,37 +122,45 @@ def search_krisshaks(request):
     except BhooswamiProfile.DoesNotExist:
         return JsonResponse({"error": "Bhooswami profile not found"}, status=404)
 
-    # ...rest of your logic
-
     required_crops = bhooswami_profile.requirements  # Fetch crop requirements
 
     # Fetch previously hired Krisshaks
-    previous_krisshaks = KrisshakProfile.objects.filter(
-        user__in=Appointment.objects.filter(bhooswami=user, status='confirmed').values_list('krisshak__id', flat=True),
-        district=bhooswami_profile.district  # ✅ Restrict search to user's district
+    confirmed_qs = Appointment.objects.filter(
+        status="confirmed",
+        krisshak=OuterRef("user")
     )
 
-    # Suggest Krisshaks whose specialization matches Bhooswami’s crop requirements
-    matching_krisshaks = KrisshakProfile.objects.filter(
+    suggestions_base = KrisshakProfile.objects.annotate(
+        has_confirmed=Case(
+            When(Exists(confirmed_qs), then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        )
+    )
+
+    previous_krisshaks = suggestions_base.filter(
+        user__in=confirmed_qs.values_list("krisshak__id", flat=True),
+        district=bhooswami_profile.district
+    )
+
+    matching_krisshaks = suggestions_base.filter(
         Q(specialization__icontains=required_crops)
-    ).order_by('-ratings')
+    ).order_by("has_confirmed", "-availability", "-ratings")
 
     ml_suggestions = get_krisshak_recommendations(bhooswami_profile)
-
-    
 
     seen = set()
     final_suggestions = []
     for k in chain(previous_krisshaks, matching_krisshaks, ml_suggestions):
-        if k.user.id not in seen:  # assuming user.id is unique per profile
+        if k.user.id not in seen:
             seen.add(k.user.id)
             final_suggestions.append(k)
 
     return JsonResponse({
-        "previous_krisshaks": [krisshak.to_dict(request) for krisshak in previous_krisshaks] if previous_krisshaks else [],
-        "matching_krisshaks": [krisshak.to_dict(request) for krisshak in matching_krisshaks] if matching_krisshaks else [],
-        "ml_suggestions": [krisshak.to_dict(request) for krisshak in ml_suggestions] if ml_suggestions else [],
-        "final_suggestions": [krisshak.to_dict(request) for krisshak in final_suggestions] if final_suggestions else [],
+        "previous_krisshaks": [k.to_dict(request) for k in previous_krisshaks],
+        "matching_krisshaks": [k.to_dict(request) for k in matching_krisshaks],
+        "ml_suggestions": [k.to_dict(request) for k in ml_suggestions],
+        "final_suggestions": [k.to_dict(request) for k in final_suggestions],
     }, safe=False)
 
 # ✅ Bhooswami Search (with ML Recommendations)
@@ -168,21 +194,31 @@ def search_bhooswamis(request):
         specialization = request.GET.get("specialization") or ""
 
     # Fetch Bhooswamis who previously appointed this Krisshak
-    previous_bhooswamis = BhooswamiProfile.objects.filter(
-        user__in=Appointment.objects.filter(krisshak=user, status='confirmed')
-                                     .values_list('bhooswami_id', flat=True),
+    confirmed_qs = Appointment.objects.filter(
+        status="confirmed",
+        bhooswami=OuterRef("user")
+    )
+
+    suggestions_base = BhooswamiProfile.objects.annotate(
+        has_confirmed=Case(
+            When(Exists(confirmed_qs), then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        )
+    )
+
+    previous_bhooswamis = suggestions_base.filter(
+        user__in=confirmed_qs.values_list("bhooswami_id", flat=True),
         district=krisshak_profile.district
     )
 
-    # Recommend based on matching requirements
-    matching_bhooswamis = BhooswamiProfile.objects.filter(
+    matching_bhooswamis = suggestions_base.filter(
         Q(requirements__icontains=specialization),
         district=krisshak_profile.district
-    ).order_by("-ratings")
+    ).order_by("has_confirmed", "-availability", "-ratings")
 
     ml_suggestions = get_bhooswami_recommendations(krisshak_profile)
 
-    # Combine and dedupe
     seen = set()
     final_suggestions = []
     for b in chain(previous_bhooswamis, matching_bhooswamis, ml_suggestions):
@@ -196,6 +232,7 @@ def search_bhooswamis(request):
         "ml_suggestions": [b.to_dict(request) for b in ml_suggestions],
         "final_suggestions": [b.to_dict(request) for b in final_suggestions],
     }, safe=False)
+
 
 # ✅ Filtering Users by District, Age, Specialization, Availability and other parameters
 
@@ -232,6 +269,8 @@ def get_filtered_users(request):
     user_type = request.GET.get("user_type")
 
     # Base queryset
+    CustomUser = get_user_model()
+
     if user.user_type == "krisshak":
         queryset = BhooswamiProfile.objects.filter(district=user.krisshakprofile.district)
     elif user.user_type == "bhooswami":
@@ -254,7 +293,10 @@ def get_filtered_users(request):
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
     model = queryset.model
-
+    
+    def model_has_field(model, field_name):
+        return field_name in [f.name for f in model._meta.get_fields()]
+    
     # Apply filters
 
     if district_id:
@@ -298,14 +340,29 @@ def get_filtered_users(request):
     if availability and model_has_field(model, "availability"):
         queryset = queryset.filter(availability=True)
 
-    # Ordering
-    ordering_fields = []
+     # ✅ Annotate with has_confirmed_appointment
+    if model in [KrisshakProfile, BhooswamiProfile]:
+        confirmed_qs = Appointment.objects.filter(
+            status="confirmed",
+            krisshak=OuterRef("user") if model == BhooswamiProfile else None,
+            bhooswami=OuterRef("user") if model == KrisshakProfile else None,
+        )
+        queryset = queryset.annotate(
+            has_confirmed_appointment=Case(
+                When(Exists(confirmed_qs), then=Value(1)),
+                default=Value(0),
+                output_field=IntegerField()
+            )
+        )
+
+    # ✅ Order by appointment freshness, availability, ratings
+    ordering_fields = ["has_confirmed_appointment"]
     if model_has_field(model, "availability"):
         ordering_fields.append("-availability")
     if model_has_field(model, "ratings"):
         ordering_fields.append("-ratings")
-    if ordering_fields:
-        queryset = queryset.order_by(*ordering_fields)
+
+    queryset = queryset.order_by(*ordering_fields)
 
     return JsonResponse({
         "filtered_users": [user.to_dict(request) for user in queryset]
