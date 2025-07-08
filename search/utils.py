@@ -1,7 +1,7 @@
 import datetime
 import requests
 
-API_URL = "https://rapidapi.com/qode-data-qode-data-default/api/crop-recommendation-api/playground"
+API_URL = "https://cropify-crop-recommendation-system.streamlit.app/api/recommend"
 
 def get_current_season():
     """Determine the season based on the current month"""
@@ -32,8 +32,13 @@ def get_ai_crop_recommendations(soil_ph, nitrogen, phosphorus, potassium):
     }
     headers = {"Content-Type": "application/json"}
     
-    response = requests.post(API_URL, json=payload, headers=headers)
-    
-    if response.status_code == 200:
-        return response.json().get("recommended_crops", [])
-    return []
+    try:
+        response = requests.post(API_URL, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json().get("recommended_crops", [])
+        else:
+            print("🔴 AI crop API error:", response.status_code, response.text)
+            return []
+    except Exception as e:
+        print("🔴 Exception during crop recommendation:", e)
+        return []

@@ -195,8 +195,8 @@ def search_bhooswamis(request):
     # Ensure krisshak profile exists
     try:
         krisshak_profile = KrisshakProfile.objects.get(user=user)
-    except KrisshakProfile.DoesNotExist:
-        return JsonResponse({"error": "Krisshak profile not found"}, status=404)
+    except Exception as e:
+        print("🔴 Error fetching krisshak_profile:", e)
 
     specialization = krisshak_profile.specialization or request.GET.get("specialization") or ""
 
@@ -232,6 +232,8 @@ def search_bhooswamis(request):
         if b.user.id not in seen:
             seen.add(b.user.id)
             final_suggestions.append(b)
+
+    print("✅ search_bhooswamis executed successfully")
 
     return JsonResponse({
         "previous_bhooswamis": [b.to_dict(request) for b in previous_bhooswamis],
