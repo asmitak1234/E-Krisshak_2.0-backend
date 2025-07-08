@@ -3,20 +3,6 @@
 import os
 import sys
 
-if "runserver" in sys.argv or "migrate" in sys.argv or "collectstatic" in sys.argv:
-    try:
-        from django.contrib.sites.models import Site
-        Site.objects.update_or_create(
-            id=1,
-            defaults={
-                "domain": "web-production-f62a7.up.railway.app",
-                "name": "Production"
-            }
-        )
-    except Exception as e:
-        print(f"⚠️ Failed to update Site object: {e}")
-
-
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ekrisshak2.settings')
@@ -33,3 +19,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
