@@ -156,7 +156,12 @@ def search_krisshaks(request):
         Q(specialization__icontains=required_crops)
     ).order_by("has_confirmed", "-availability", "-ratings")
 
-    ml_suggestions = get_krisshak_recommendations(bhooswami_profile)
+    try:
+        ml_suggestions = get_krisshak_recommendations(bhooswami_profile)
+    except Exception as e:
+        print("🔴 Error in ML recommendations:", e)
+        ml_suggestions = []
+
 
     seen = set()
     final_suggestions = []
@@ -165,12 +170,20 @@ def search_krisshaks(request):
             seen.add(k.user.id)
             final_suggestions.append(k)
 
+    def safe_to_dict(k, request):
+        try:
+            return k.to_dict(request)
+        except Exception as e:
+            print(f"⚠️ Error serializing Krisshak {getattr(k, 'user', None)}:", e)
+            return {}
+
     return JsonResponse({
-        "previous_krisshaks": [k.to_dict(request) for k in previous_krisshaks],
-        "matching_krisshaks": [k.to_dict(request) for k in matching_krisshaks],
-        "ml_suggestions": [k.to_dict(request) for k in ml_suggestions],
-        "final_suggestions": [k.to_dict(request) for k in final_suggestions],
+        "previous_krisshaks": [safe_to_dict(k, request) for k in previous_krisshaks],
+        "matching_krisshaks": [safe_to_dict(k, request) for k in matching_krisshaks],
+        "ml_suggestions": [safe_to_dict(k, request) for k in ml_suggestions],
+        "final_suggestions": [safe_to_dict(k, request) for k in final_suggestions],
     }, safe=False)
+
 
 # ✅ Bhooswami Search (with ML Recommendations)
 @api_view(["GET"])
@@ -223,7 +236,7 @@ def search_bhooswamis(request):
     matching_bhooswamis = suggestions_base.filter(
         Q(requirements__icontains=specialization),
         district=krisshak_profile.district
-    ).order_by("has_confirmed", "-availability", "-ratings")
+    ).order_by("has_confirmed", "-ratings")
 
     try:
         ml_suggestions = get_bhooswami_recommendations(krisshak_profile)
