@@ -197,6 +197,7 @@ def search_bhooswamis(request):
         krisshak_profile = KrisshakProfile.objects.get(user=user)
     except Exception as e:
         print("🔴 Error fetching krisshak_profile:", e)
+        return JsonResponse({"error": "Krisshak profile not found"}, status=404)
 
     specialization = krisshak_profile.specialization or request.GET.get("specialization") or ""
 
@@ -224,7 +225,12 @@ def search_bhooswamis(request):
         district=krisshak_profile.district
     ).order_by("has_confirmed", "-availability", "-ratings")
 
-    ml_suggestions = get_bhooswami_recommendations(krisshak_profile)
+    try:
+        ml_suggestions = get_bhooswami_recommendations(krisshak_profile)
+    except Exception as e:
+        print("🔴 Error in ML recommendations:", e)
+        ml_suggestions = []
+
 
     seen = set()
     final_suggestions = []
@@ -235,12 +241,20 @@ def search_bhooswamis(request):
 
     print("✅ search_bhooswamis executed successfully")
 
+    def safe_to_dict(b, request):
+        try:
+            return b.to_dict(request)
+        except Exception as e:
+            print(f"⚠️ Error serializing Bhooswami {b.user.id}: {e}")
+            return {}
+
     return JsonResponse({
-        "previous_bhooswamis": [b.to_dict(request) for b in previous_bhooswamis],
-        "matching_bhooswamis": [b.to_dict(request) for b in matching_bhooswamis],
-        "ml_suggestions": [b.to_dict(request) for b in ml_suggestions],
-        "final_suggestions": [b.to_dict(request) for b in final_suggestions],
+        "previous_bhooswamis": [safe_to_dict(b, request) for b in previous_bhooswamis],
+        "matching_bhooswamis": [safe_to_dict(b, request) for b in matching_bhooswamis],
+        "ml_suggestions": [safe_to_dict(b, request) for b in ml_suggestions],
+        "final_suggestions": [safe_to_dict(b, request) for b in final_suggestions],
     }, safe=False)
+
 
 
 # ✅ Filtering Users by District, Age, Specialization, Availability and other parameters
