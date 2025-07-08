@@ -75,14 +75,23 @@ def get_smart_suggestions(request):
     # Suggest Krisshaks based on AI-suggested crops (if provided)
     ai_suggestions = []
     if soil_ph and nitrogen and phosphorus and potassium:
-        ai_crops = get_ai_crop_recommendations(float(soil_ph), float(nitrogen), float(phosphorus), float(potassium))
-        ai_suggestions = KrisshakProfile.objects.filter(
-            Q(specialization__icontains=ai_crops[0]) | Q(specialization__icontains=ai_crops[1])
-        ).order_by("has_confirmed", "-availability", "-ratings")
+        try:
+            ai_crops = get_ai_crop_recommendations(float(soil_ph), float(nitrogen), float(phosphorus), float(potassium))
+            ai_suggestions = suggestions_base.filter(
+                Q(specialization__icontains=ai_crops[0]) |
+                Q(specialization__icontains=ai_crops[1])
+            ).order_by("has_confirmed", "-availability", "-ratings")
+        except Exception as e:
+            print("🔴 AI crop recommendation error:", e)
 
     # 🔍 Include Krisshaks that match Bhooswami's required crops
+    try:
+        required_crops = user.bhooswamiprofile.requirements or ""
+    except AttributeError:
+        required_crops = ""
+
     required_crops_suggestions = suggestions_base.filter(
-        Q(specialization__icontains=user.bhooswamiprofile.requirements)
+        Q(specialization__icontains=required_crops)
     ).order_by("has_confirmed", "-availability", "-ratings")
 
     # Merge lists in priority order
@@ -122,7 +131,7 @@ def search_krisshaks(request):
     except BhooswamiProfile.DoesNotExist:
         return JsonResponse({"error": "Bhooswami profile not found"}, status=404)
 
-    required_crops = bhooswami_profile.requirements  # Fetch crop requirements
+    required_crops = bhooswami_profile.requirements or ""
 
     # Fetch previously hired Krisshaks
     confirmed_qs = Appointment.objects.filter(
@@ -189,9 +198,7 @@ def search_bhooswamis(request):
     except KrisshakProfile.DoesNotExist:
         return JsonResponse({"error": "Krisshak profile not found"}, status=404)
 
-    specialization = krisshak_profile.specialization  # fallback if not in request
-    if not specialization:
-        specialization = request.GET.get("specialization") or ""
+    specialization = krisshak_profile.specialization or request.GET.get("specialization") or ""
 
     # Fetch Bhooswamis who previously appointed this Krisshak
     confirmed_qs = Appointment.objects.filter(
@@ -271,26 +278,32 @@ def get_filtered_users(request):
     # Base queryset
     CustomUser = get_user_model()
 
-    if user.user_type == "krisshak":
-        queryset = BhooswamiProfile.objects.filter(district=user.krisshakprofile.district)
-    elif user.user_type == "bhooswami":
-        queryset = KrisshakProfile.objects.filter(district=user.bhooswamiprofile.district)
-    elif user.user_type == "district_admin":
-        try:
+    try:
+        if user.user_type == "krisshak":
+            queryset = BhooswamiProfile.objects.filter(district=user.krisshakprofile.district)
+
+        elif user.user_type == "bhooswami":
+            queryset = KrisshakProfile.objects.filter(district=user.bhooswamiprofile.district)
+
+        elif user.user_type == "district_admin":
             queryset = CustomUser.objects.filter(district=user.districtadminprofile.district)
             if user_type:
                 queryset = queryset.filter(user_type=user_type)
-        except DistrictAdminProfile.DoesNotExist:
-            return JsonResponse({"error": "District not found"}, status=404)
-    elif user.user_type == "state_admin":
-        try:
+
+        elif user.user_type == "state_admin":
             queryset = CustomUser.objects.filter(district__state=user.stateadminprofile.state)
             if user_type:
                 queryset = queryset.filter(user_type=user_type)
-        except StateAdminProfile.DoesNotExist:
-            return JsonResponse({"error": "State not found"}, status=404)
-    else:
-        return JsonResponse({"error": "Unauthorized"}, status=403)
+
+        else:
+            return JsonResponse({"error": "Unauthorized"}, status=403)
+
+    except AttributeError:
+        return JsonResponse({"error": "User profile not found"}, status=404)
+    except DistrictAdminProfile.DoesNotExist:
+        return JsonResponse({"error": "District not found"}, status=404)
+    except StateAdminProfile.DoesNotExist:
+        return JsonResponse({"error": "State not found"}, status=404)
 
     model = queryset.model
     
@@ -337,7 +350,7 @@ def get_filtered_users(request):
     if price_max and model_has_field(model, "price"):
         queryset = queryset.filter(price__lte=float(price_max))
 
-    if availability and model_has_field(model, "availability"):
+    if availability == "true" and model_has_field(model, "availability"):
         queryset = queryset.filter(availability=True)
 
      # ✅ Annotate with has_confirmed_appointment

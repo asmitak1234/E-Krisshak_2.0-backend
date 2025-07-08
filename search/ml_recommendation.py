@@ -34,14 +34,18 @@ def get_krisshak_recommendations(bhooswami):
     # Train K-Nearest Neighbors model
     model = KNeighborsClassifier(n_neighbors=min(3, df.shape[0]))
     X = df[["ratings", "previously_appointed", "matches_required_crops"]]
+    X = X.fillna(0)
     y = df["krisshak_id"]
     model.fit(X, y)
 
     # Predict for the **specific Bhooswami request**, not the entire dataset
-    user_input = [[bhooswami.ratings, 1, 1]]
-    recommendations = model.predict(user_input)
-
-    return KrisshakProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
+    user_input = [[bhooswami.ratings or 0, 1, 1]]
+    try:
+        recommendations = model.predict(user_input)
+        return KrisshakProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
+    except Exception as e:
+        print("🔴 Recommendation prediction failed:", e)
+        return KrisshakProfile.objects.filter(id__in=df["krisshak_id"]).order_by("-ratings")
 
 def get_bhooswami_recommendations(krisshak):
     """Suggests Bhooswamis based on previous appointments, expertise, and specialization."""
@@ -75,6 +79,9 @@ def get_bhooswami_recommendations(krisshak):
 
     # Predict for the **specific Krisshak request**, not the entire dataset
     user_input = [[krisshak.ratings, 1, 1]]
-    recommendations = model.predict(user_input)
-
-    return BhooswamiProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
+    try:
+        recommendations = model.predict(user_input)
+        return BhooswamiProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
+    except Exception as e:
+        print("🔴 Recommendation prediction failed:", e)
+        return BhooswamiProfile.objects.filter(id__in=df["bhooswami_id"]).order_by("-ratings")
