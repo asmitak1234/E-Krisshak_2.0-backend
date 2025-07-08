@@ -25,7 +25,8 @@ class StateListView(APIView):
         states = State.objects.all().order_by("name")
         serializer = StateSerializer(states, many=True)
         return Response(serializer.data)
-    
+
+@permission_classes([AllowAny])
 class DistrictsByStateView(APIView):
     def get(self, request):
         state_id = request.GET.get("state_id")
