@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.neighbors import KNeighborsClassifier
 from appointments.models import Appointment
 from users.models import KrisshakProfile, BhooswamiProfile
+import sys 
 
 def get_krisshak_recommendations(bhooswami):
     """Suggests Krisshaks based on past appointments, expertise, and district."""
@@ -83,5 +84,5 @@ def get_bhooswami_recommendations(krisshak):
         recommendations = model.predict(user_input)
         return BhooswamiProfile.objects.filter(id__in=recommendations).order_by("-ratings", "-previously_appointed")
     except Exception as e:
-        print("🔴 Recommendation prediction failed:", e)
+        print("🔴 Recommendation prediction failed:", e, file=sys.stderr, flush=True)
         return BhooswamiProfile.objects.filter(id__in=df["bhooswami_id"]).order_by("-ratings")

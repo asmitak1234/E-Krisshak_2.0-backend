@@ -1,5 +1,6 @@
 import datetime
 import requests
+import sys
 
 API_URL = "https://crop-recommendation-api.onrender.com/predict"
 
@@ -44,5 +45,5 @@ def get_ai_crop_recommendations(soil_ph, nitrogen, phosphorus, potassium):
             print("🔴 AI crop API error:", response.status_code, response.text)
             return []
     except Exception as e:
-        print("🔴 Exception during crop recommendation:", e)
+        print("🔴 Exception during crop recommendation:", e, file=sys.stderr, flush=True)
         return []
