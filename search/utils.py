@@ -1,7 +1,7 @@
 import datetime
 import requests
 
-API_URL = "https://cropify-crop-recommendation-system.streamlit.app/api/recommend"
+API_URL = "https://crop-recommendation-api.onrender.com/predict"
 
 def get_current_season():
     """Determine the season based on the current month"""
@@ -25,17 +25,21 @@ def get_favorable_crops(season):
 def get_ai_crop_recommendations(soil_ph, nitrogen, phosphorus, potassium):
     """Fetch AI-based crop recommendations"""
     payload = {
-        "soil_ph": soil_ph,
-        "nitrogen": nitrogen,
-        "phosphorus": phosphorus,
-        "potassium": potassium
+        "N": nitrogen,
+        "P": phosphorus,
+        "K": potassium,
+        "temperature": 25.0,  # default or estimated
+        "humidity": 60.0,     # default or estimated
+        "ph": soil_ph,
+        "rainfall": 100.0     # default or estimated
     }
     headers = {"Content-Type": "application/json"}
     
     try:
         response = requests.post(API_URL, json=payload, headers=headers)
         if response.status_code == 200:
-            return response.json().get("recommended_crops", [])
+            crop = response.json().get("prediction")
+            return [crop] if crop else []
         else:
             print("🔴 AI crop API error:", response.status_code, response.text)
             return []
