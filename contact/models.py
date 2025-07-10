@@ -50,7 +50,7 @@ class Notice(models.Model):
         if self.author_type == "state_admin":
             self.author_name = f"State Admin ({self.state.state.state_name})"
         elif self.author_type == "district_admin":
-            self.author_name = f"District Admin ({self.district.district.district_name}, {self.state.state.state_name})"
+            self.author_name = f"District Admin ({self.district.district.name}, {self.state.state.state_name})"
         super().save(*args, **kwargs)
 
     class Meta:
