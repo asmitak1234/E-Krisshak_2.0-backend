@@ -18,10 +18,13 @@ from channels.auth import AuthMiddlewareStack
 from notifications.routing import websocket_urlpatterns
 from notifications.middleware import TokenAuthMiddleware
 
+from django.core.asgi import get_asgi_application
 
 application = ProtocolTypeRouter({
+    "http": get_asgi_application(),  # ✅ handles REST & Django views
     "websocket": TokenAuthMiddleware(
         URLRouter(websocket_urlpatterns)
     )
 })
+
 

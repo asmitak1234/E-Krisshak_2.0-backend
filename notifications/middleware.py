@@ -3,7 +3,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 
 class TokenAuthMiddleware:
-    """Custom middleware to authenticate WebSocket connections via token."""
+    """ASGI middleware that populates scope['user'] based on token query."""
     def __init__(self, inner):
         self.inner = inner
 
@@ -12,11 +12,10 @@ class TokenAuthMiddleware:
 
 class TokenAuthMiddlewareInstance:
     def __init__(self, scope, inner):
-        self.scope = scope
+        self.scope = dict(scope)  # ✅ make scope mutable
         self.inner = inner
 
     async def __call__(self, receive, send):
-        # Parse query string token
         query_string = self.scope.get("query_string", b"").decode()
         token = None
 
