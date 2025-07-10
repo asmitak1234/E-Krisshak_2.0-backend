@@ -149,11 +149,30 @@ def get_notices(request):
     if not user.is_authenticated:
         return JsonResponse({"error": "Unauthorized"}, status=403)
 
-    # Fetch notices only for the user’s state
-    notices = Notice.objects.filter(state=user.stateadminprofile.state)
-    serialized_notices = NoticeSerializer(notices, many=True).data
+    try:
+        # Try to match user’s role safely
+        if hasattr(user, "stateadminprofile"):
+            state = user.stateadminprofile.state
+            notices = Notice.objects.filter(state=user.stateadminprofile)
+        elif hasattr(user, "districtadminprofile"):
+            district = user.districtadminprofile
+            notices = Notice.objects.filter(district=district)
+        else:
+            # fallback for Krisshak or others — filter by state via profile
+            state = None
+            if hasattr(user, "krisshakprofile"):
+                state = user.krisshakprofile.state
+            elif hasattr(user, "bhooswamiprofile"):
+                state = user.bhooswamiprofile.state
 
-    return JsonResponse({"notices": serialized_notices}, safe=False)
+            notices = Notice.objects.filter(state__state=state) if state else Notice.objects.none()
+
+        serialized = NoticeSerializer(notices, many=True)
+        return JsonResponse({"notices": serialized.data}, safe=False)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 @api_view(["POST"])
 def create_notice(request):

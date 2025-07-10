@@ -47,10 +47,12 @@ class Notice(models.Model):
 
     def save(self, *args, **kwargs):
         """Automatically format author_name based on admin type."""
-        if self.author_type == "state_admin":
+        if self.author_type == "state_admin" and hasattr(self.state, "state"):
             self.author_name = f"State Admin ({self.state.state.name})"
-        elif self.author_type == "district_admin":
+        elif self.author_type == "district_admin" and hasattr(self.district, "district") and hasattr(self.state, "state"):
             self.author_name = f"District Admin ({self.district.district.name}, {self.state.state.name})"
+        else:
+            self.author_name = "Unknown Author"
         super().save(*args, **kwargs)
 
     class Meta:
