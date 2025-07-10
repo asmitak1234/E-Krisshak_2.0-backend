@@ -48,9 +48,9 @@ class Notice(models.Model):
     def save(self, *args, **kwargs):
         """Automatically format author_name based on admin type."""
         if self.author_type == "state_admin":
-            self.author_name = f"State Admin ({self.state.state.state_name})"
+            self.author_name = f"State Admin ({self.state.state.name})"
         elif self.author_type == "district_admin":
-            self.author_name = f"District Admin ({self.district.district.name}, {self.state.state.state_name})"
+            self.author_name = f"District Admin ({self.district.district.name}, {self.state.state.name})"
         super().save(*args, **kwargs)
 
     class Meta:
