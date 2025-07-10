@@ -12,12 +12,14 @@ import django
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
 from notifications.routing import websocket_urlpatterns
+from notifications.middleware import TokenAuthMiddleware
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ekrisshak2.settings')
 django.setup()
 
+
 application = ProtocolTypeRouter({
-    "websocket": AuthMiddlewareStack(
+    "websocket": TokenAuthMiddleware(
         URLRouter(websocket_urlpatterns)
     )
 })

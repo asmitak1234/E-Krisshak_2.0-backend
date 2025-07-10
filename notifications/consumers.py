@@ -8,7 +8,7 @@ class NotificationConsumer(AsyncJsonWebsocketConsumer):
             await self.close()
         else:
             self.group_name = f"user_{self.scope['user'].id}"
-            await self.channel_layer.group_add(self.group_name, self.channel_name)
+            await self.channel_layer.group_add("global_notice_updates", self.channel_name)
             await self.accept()
 
     async def disconnect(self, close_code):
