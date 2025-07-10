@@ -45,7 +45,7 @@ class ContactMessageView(APIView):
         user = request.user
 
         if serializer.is_valid():
-            msg = serializer.save(commit=False)
+            msg = ContactMessage(**serializer.validated_data)
             msg.sender = user
             msg.sender_type = user.user_type
 
