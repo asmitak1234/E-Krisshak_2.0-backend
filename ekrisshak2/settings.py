@@ -67,8 +67,6 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ekrisshak2.settings")
-
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
