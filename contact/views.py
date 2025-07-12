@@ -33,11 +33,12 @@ class ContactMessageListView(generics.ListAPIView):
 
             if user.user_type in ['krisshak', 'bhooswami']:
                 sent = ContactMessage.objects.filter(sender=user, parent__isnull=True)
-                replies = ContactMessage.objects.filter(
-                    parent__isnull=False,
-                    parent__sender=user
-                ).exclude(sender=user)
-                return sent.union(replies).distinct().order_by('-created_at')
+                replies = ContactMessage.objects.filter(parent__sender=user).exclude(sender=user)
+
+                # Merge with Python, not .union()
+                combined = list(sent) + list(replies)
+                combined.sort(key=lambda x: x.created_at, reverse=True)  # newest first
+                return combined
 
             return base_qs.filter(sender=user)
 
