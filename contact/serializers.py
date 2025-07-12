@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import ContactMessage, Notice
 
 class ContactMessageSerializer(serializers.ModelSerializer):
+    replies = serializers.SerializerMethodField()
+
     class Meta:
         model = ContactMessage
         fields = '__all__'
@@ -10,6 +12,9 @@ class ContactMessageSerializer(serializers.ModelSerializer):
             'is_admin_reply', 'is_resolved', 'parent'
         ]
 
+    def get_replies(self, obj):
+        children = obj.replies.order_by("created_at")
+        return ContactMessageSerializer(children, many=True).data
 
 class NoticeSerializer(serializers.ModelSerializer):
     class Meta:

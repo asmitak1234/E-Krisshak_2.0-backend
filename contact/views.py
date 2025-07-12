@@ -17,24 +17,26 @@ class ContactMessageListView(generics.ListAPIView):
     def get_queryset(self):
         user = self.request.user
 
+        base_qs = ContactMessage.objects.filter(parent__isnull=True)
+
         if user.is_superuser:
-            return ContactMessage.objects.all()
+            return base_qs
 
         if user.user_type == 'state_admin':
             try:
                 state = user.stateadminprofile.state
-                return ContactMessage.objects.filter(state=state)
+                return base_qs.filter(state=state)
             except:
-                return ContactMessage.objects.none()
+                return base_qs.none()
 
         if user.user_type == 'district_admin':
             try:
                 district = user.districtadminprofile.district
-                return ContactMessage.objects.filter(district=district)
+                return base_qs.filter(district=district)
             except:
-                return ContactMessage.objects.none()
+                return base_qs.none()
 
-        return ContactMessage.objects.filter(sender=user)
+        return base_qs.filter(sender=user)
 
 
 class ContactMessageView(APIView):
