@@ -48,15 +48,31 @@ class RegisterSerializer(serializers.ModelSerializer):
         return obj.get_profile_picture(request=request)
     
     def get_state_name(self, obj):
-        if hasattr(obj, 'state') and obj.state:
-            return str(obj.state.name)
+        try:
+            if obj.user_type == "krisshak" and hasattr(obj, "krisshakprofile"):
+                return obj.krisshakprofile.state.name
+            elif obj.user_type == "bhooswami" and hasattr(obj, "bhooswamiprofile"):
+                return obj.bhooswamiprofile.state.name
+            elif obj.user_type == "district_admin" and hasattr(obj, "districtadminprofile"):
+                return obj.districtadminprofile.district.state.name
+            elif obj.user_type == "state_admin" and hasattr(obj, "stateadminprofile"):
+                return obj.stateadminprofile.state.name
+        except:
+            pass
         return None
 
     def get_district_name(self, obj):
-        if hasattr(obj, 'district') and obj.district:
-            return str(obj.district.name)
+        try:
+            if obj.user_type == "krisshak" and hasattr(obj, "krisshakprofile"):
+                return obj.krisshakprofile.district.name
+            elif obj.user_type == "bhooswami" and hasattr(obj, "bhooswamiprofile"):
+                return obj.bhooswamiprofile.district.name
+            elif obj.user_type == "district_admin" and hasattr(obj, "districtadminprofile"):
+                return obj.districtadminprofile.district.name
+        except:
+            pass
         return None
-    
+
     def validate_email(self, value):
         try:
             validate_email(value)
