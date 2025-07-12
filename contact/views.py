@@ -19,29 +19,31 @@ class ContactMessageListView(generics.ListAPIView):
 
         base_qs = ContactMessage.objects.filter(parent__isnull=True)
 
-        if user.is_superuser:
-            return base_qs
+        try:
+            if user.is_superuser:
+                return base_qs
 
-        if user.user_type == 'state_admin':
-            try:
+            if user.user_type == 'state_admin':
                 state = user.stateadminprofile.state
                 return base_qs.filter(state=state)
-            except:
-                return base_qs.none()
 
-        if user.user_type == 'district_admin':
-            try:
+            if user.user_type == 'district_admin':
                 district = user.districtadminprofile.district
                 return base_qs.filter(district=district)
-            except:
-                return base_qs.none()
-        if user.user_type in ['krisshak', 'bhooswami']:
-            # Root messages sent by the user + replies received
-            sent = ContactMessage.objects.filter(sender=user, parent__isnull=True)
-            replies = ContactMessage.objects.filter(parent__sender=user).exclude(sender=user)
-            return sent.union(replies).distinct().order_by('-created_at')
 
-        return base_qs.filter(sender=user)
+            if user.user_type in ['krisshak', 'bhooswami']:
+                sent = ContactMessage.objects.filter(sender=user, parent__isnull=True)
+                replies = ContactMessage.objects.filter(
+                    parent__isnull=False,
+                    parent__sender=user
+                ).exclude(sender=user)
+                return sent.union(replies).distinct().order_by('-created_at')
+
+            return base_qs.filter(sender=user)
+
+        except Exception as e:
+            print("🔥 ContactMessageListView Error:", str(e))
+            return ContactMessage.objects.none()
 
 
 class ContactMessageView(APIView):
