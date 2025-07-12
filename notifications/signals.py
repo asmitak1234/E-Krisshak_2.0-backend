@@ -41,17 +41,24 @@ def notify_appointment(sender, instance, created, **kwargs):
 # 💬 Contact Message / Reply Notification
 @receiver(post_save, sender=ContactMessage)
 def notify_contact(sender, instance, created, **kwargs):
-    if created:
-        # Reply to existing message
-        if instance.parent:
-            notif = Notification.objects.create(
-                recipient=instance.parent.sender,
-                sender=instance.sender,
-                notification_type='contact',
-                title="Reply Received",
-                message=f"Someone responded to your message: {instance.subject}",
-            )
+    if not created:
+        return
 
+    # 🚫 Skip guest submissions
+    if instance.sender_type == "guest":
+        return
+
+    # 💬 Reply to existing message
+    if instance.parent:
+        notif = Notification.objects.create(
+            recipient=instance.parent.sender,
+            sender=instance.sender,
+            notification_type='contact',
+            title="Reply Received",
+            message=f"Someone responded to your message: {instance.subject}",
+        )
+
+        if notif.recipient:
             async_to_sync(channel_layer.group_send)(
                 f"user_{notif.recipient.id}",
                 {
@@ -64,15 +71,16 @@ def notify_contact(sender, instance, created, **kwargs):
                 },
             )
 
-        # New message forwarded
-        elif instance.forwarded_to:
-            notif = Notification.objects.create(
-                recipient=instance.sender,
-                notification_type='contact',
-                title="Message Forwarded",
-                message=f"Your message '{instance.subject}' has been forwarded to {instance.forwarded_to}.",
-            )
+    # 📤 New message forwarded
+    elif instance.forwarded_to and instance.sender:
+        notif = Notification.objects.create(
+            recipient=instance.sender,
+            notification_type='contact',
+            title="Message Forwarded",
+            message=f"Your message '{instance.subject}' has been forwarded to {instance.forwarded_to}.",
+        )
 
+        if notif.recipient:
             async_to_sync(channel_layer.group_send)(
                 f"user_{notif.recipient.id}",
                 {
@@ -84,6 +92,7 @@ def notify_contact(sender, instance, created, **kwargs):
                     },
                 },
             )
+
 
 # 🔔 Instant Notification When an 📆 Calendar Event is Created
 @receiver(post_save, sender=CalendarEvent)
