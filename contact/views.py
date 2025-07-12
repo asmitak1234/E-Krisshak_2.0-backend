@@ -227,23 +227,34 @@ class PublicContactMessageView(APIView):
     def post(self, request):
         serializer = ContactMessageSerializer(data=request.data)
         if serializer.is_valid():
-            msg = ContactMessage(**serializer.validated_data)
+            msg = serializer.save(
+                sender_type="guest",
+                forwarded_to="Superadmin",
+                state=None,
+                district=None,
+                parent=None,
+                is_admin_reply=False,
+                is_resolved=False
+            )
             msg.sender_type = "guest"
             msg.forwarded_to = "Superadmin"
             msg.save()
 
-            EmailMessage(
-                subject=f"[Public Contact] {msg.subject}",
-                body=f"""
-                Name: {msg.name}
-                Email: {msg.email}
-                Message:
-                {msg.message}
-                """,
-                from_email=settings.EMAIL_HOST_USER,
-                to=[settings.EMAIL_HOST_USER],
-                reply_to=[msg.email],
-            ).send(fail_silently=False)
-
+            try:
+                EmailMessage(
+                    subject=f"[Public Contact] {msg.subject}",
+                    body=f"""
+                    Name: {msg.name}
+                    Email: {msg.email}
+                    Message:
+                    {msg.message}
+                    """,
+                    from_email=settings.EMAIL_HOST_USER,
+                    to=[settings.EMAIL_HOST_USER],
+                    reply_to=[msg.email],
+                ).send(fail_silently=False)
+            except Exception as e:
+                print("❌ Email send error:", e)
+                
             return Response({"message": "Thank you for reaching out!"}, status=200)
         return Response(serializer.errors, status=400)
