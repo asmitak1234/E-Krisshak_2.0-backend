@@ -35,6 +35,11 @@ class ContactMessageListView(generics.ListAPIView):
                 return base_qs.filter(district=district)
             except:
                 return base_qs.none()
+        if user.user_type in ['krisshak', 'bhooswami']:
+            # Root messages sent by the user + replies received
+            sent = ContactMessage.objects.filter(sender=user, parent__isnull=True)
+            replies = ContactMessage.objects.filter(parent__sender=user).exclude(sender=user)
+            return sent.union(replies).distinct().order_by('-created_at')
 
         return base_qs.filter(sender=user)
 
