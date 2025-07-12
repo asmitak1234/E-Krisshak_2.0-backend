@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ContactMessageView, ContactMessageListView, ContactReplyView, get_notices, create_notice
+from .views import ContactMessageView, ContactMessageListView, ContactReplyView, get_notices, create_notice, PublicContactMessageView
 
 urlpatterns = [
     path('send/', ContactMessageView.as_view(), name='send-contact-message'),
@@ -7,4 +7,6 @@ urlpatterns = [
     path('reply/<int:pk>/', ContactReplyView.as_view(), name='reply-contact-message'),
     path("notices/", get_notices, name="get_notices"),
     path("notices/create/", create_notice, name="create_notice"),
+
+    path("public/", PublicContactMessageView.as_view(), name="public-contact"),
 ]

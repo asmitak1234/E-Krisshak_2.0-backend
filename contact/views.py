@@ -220,3 +220,30 @@ def create_notice(request):
     )
 
     return JsonResponse({"message": "Notice created successfully"}, status=201)
+
+class PublicContactMessageView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = ContactMessageSerializer(data=request.data)
+        if serializer.is_valid():
+            msg = ContactMessage(**serializer.validated_data)
+            msg.sender_type = "guest"
+            msg.forwarded_to = "Superadmin"
+            msg.save()
+
+            EmailMessage(
+                subject=f"[Public Contact] {msg.subject}",
+                body=f"""
+                Name: {msg.name}
+                Email: {msg.email}
+                Message:
+                {msg.message}
+                """,
+                from_email=settings.EMAIL_HOST_USER,
+                to=[settings.EMAIL_HOST_USER],
+                reply_to=[msg.email],
+            ).send(fail_silently=False)
+
+            return Response({"message": "Thank you for reaching out!"}, status=200)
+        return Response(serializer.errors, status=400)

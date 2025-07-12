@@ -16,6 +16,17 @@ class ContactMessageSerializer(serializers.ModelSerializer):
         children = obj.replies.order_by("created_at")
         return ContactMessageSerializer(children, many=True).data
 
+    def validate_email(self, value):
+        if not value or "@" not in value:
+            raise serializers.ValidationError("Provide a valid email.")
+        return value
+
+    def validate_message(self, value):
+        if len(value.strip()) < 5:
+            raise serializers.ValidationError("Message too short.")
+        return value
+
+
 class NoticeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notice
