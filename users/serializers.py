@@ -29,17 +29,33 @@ class DistrictSerializer(serializers.ModelSerializer):
         
 class RegisterSerializer(serializers.ModelSerializer):
     profile_picture = serializers.ImageField(required=False)
+
+    # Accept IDs on write
     state = serializers.PrimaryKeyRelatedField(queryset=State.objects.all(), write_only=True, required=False)
     district = serializers.PrimaryKeyRelatedField(queryset=District.objects.all(), write_only=True, required=False)
 
+    # Show names on read
+    state_name = serializers.SerializerMethodField(read_only=True)
+    district_name = serializers.SerializerMethodField(read_only=True)
+   
     class Meta:
         model = CustomUser
-        fields = ['email', 'password', 'user_type','name','age','gender','phone_number','preferred_language','profile_picture','state','district']
+        fields = ['email', 'password', 'user_type','name','age','gender','phone_number','preferred_language','profile_picture','state','district','state_name','district_name']
         extra_kwargs = {'password': {'write_only': True}}
 
     def get_profile_picture(self, obj):
         request = self.context.get("request")
         return obj.get_profile_picture(request=request)
+    
+    def get_state_name(self, obj):
+        if hasattr(obj, 'state') and obj.state:
+            return str(obj.state.name)
+        return None
+
+    def get_district_name(self, obj):
+        if hasattr(obj, 'district') and obj.district:
+            return str(obj.district.name)
+        return None
     
     def validate_email(self, value):
         try:
