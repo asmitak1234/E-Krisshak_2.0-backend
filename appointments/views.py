@@ -217,3 +217,16 @@ def mark_appointment_paid(request, appointment_id):
         return Response({"status": "updated"}, status=status.HTTP_200_OK)
     except Appointment.DoesNotExist:
         return Response({"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def confirmed_appointments(request):
+    confirmed = Appointment.objects.filter(
+        status="confirmed"
+    ).filter(
+        Q(bhooswami=request.user) | Q(krisshak=request.user)
+    ).order_by("-created_at")
+
+    serializer = AppointmentSerializer(confirmed, many=True)
+    return Response(serializer.data)
