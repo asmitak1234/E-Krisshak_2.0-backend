@@ -206,3 +206,14 @@ def cancel_request(request, request_id):
 
     appt_request.delete()
     return Response({"message": "Request canceled successfully."}, status=204)
+
+@api_view(["PATCH"])
+@permission_classes([permissions.IsAuthenticated])
+def mark_appointment_paid(request, appointment_id):
+    try:
+        appointment = Appointment.objects.get(id=appointment_id)
+        appointment.payment_status = "paid"
+        appointment.save()
+        return Response({"status": "updated"}, status=status.HTTP_200_OK)
+    except Appointment.DoesNotExist:
+        return Response({"error": "Appointment not found"}, status=status.HTTP_404_NOT_FOUND)

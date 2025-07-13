@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import AppointmentListCreateView, AppointmentRetrieveUpdateView, request_appointment, get_requests, accept_request, cancel_request
+from .views import AppointmentListCreateView, AppointmentRetrieveUpdateView, request_appointment, get_requests, accept_request, cancel_request, mark_appointment_paid
 
 urlpatterns = [
     path('', AppointmentListCreateView.as_view(), name='appointments'),
@@ -8,5 +8,6 @@ urlpatterns = [
     path('requests/', get_requests, name='get-requests'),
     path('accept-request/<uuid:request_id>/', accept_request, name='accept-request'),
     path('cancel-request/<uuid:request_id>/', cancel_request, name='cancel-request'),
+    path("mark-paid/<uuid:appointment_id>/", mark_appointment_paid),
 
 ]
