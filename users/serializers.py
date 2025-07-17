@@ -136,8 +136,8 @@ class KrisshakProfileSerializer(serializers.ModelSerializer):
         try:
             appointment = Appointment.objects.filter(
                 status="confirmed",
-                sender_user__in=[logged_in_user, obj.user],
-                recipient_user__in=[logged_in_user, obj.user]
+                krisshak=obj.user,
+                bhooswami=logged_in_user
             ).latest("created_at")
             return AppointmentSerializer(appointment).data
         except Appointment.DoesNotExist:
@@ -158,8 +158,8 @@ class BhooswamiProfileSerializer(serializers.ModelSerializer):
         try:
             appointment = Appointment.objects.filter(
                 status="confirmed",
-                sender_user__in=[logged_in_user, obj.user],
-                recipient_user__in=[logged_in_user, obj.user]
+                bhooswami=obj.user,
+                krisshak=logged_in_user
             ).latest("created_at")
             return AppointmentSerializer(appointment).data
         except Appointment.DoesNotExist:
