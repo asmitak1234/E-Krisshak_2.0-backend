@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.db.models import Case, When, Value, IntegerField, OuterRef, Exists
 from django.db.models import Q
 from users.models import KrisshakProfile, BhooswamiProfile, CustomUser, StateAdminProfile, DistrictAdminProfile
+from users.serializers import KrisshakProfileSerializer, BhooswamiProfileSerializer
 from appointments.models import Appointment
 from .utils import get_current_season, get_favorable_crops, get_ai_crop_recommendations
 from search.ml_recommendation import get_krisshak_recommendations, get_bhooswami_recommendations
@@ -172,7 +173,7 @@ def search_krisshaks(request):
 
     def safe_to_dict(k, request):
         try:
-            return k.to_dict(request)
+            return KrisshakProfileSerializer(k, context={"request": request}).data
         except Exception as e:
             print(f"⚠️ Error serializing Krisshak {getattr(k, 'user', None)}:", e)
             return {}
@@ -256,7 +257,7 @@ def search_bhooswamis(request):
 
     def safe_to_dict(b, request):
         try:
-            return b.to_dict(request)
+            return BhooswamiProfileSerializer(b, context={"request": request}).data
         except Exception as e:
             print(f"⚠️ Error serializing Bhooswami {b.user.id}: {e}")
             return {}
