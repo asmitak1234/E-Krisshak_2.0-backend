@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import CustomUser, KrisshakProfile, BhooswamiProfile, StateAdminProfile, DistrictAdminProfile, Favorite, District, State
-
+from appointments.serializers import AppointmentSerializer
+from appointments.models import Appointment
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
@@ -117,7 +118,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class KrisshakProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
-    
+    appointment = serializers.SerializerMethodField()
+
     class Meta:
         model = KrisshakProfile
         fields = "__all__"
@@ -127,13 +129,41 @@ class KrisshakProfileSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Krisshaks must provide either a bank account number or UPI ID for payouts.")
         return attrs
 
+    def get_appointment(self, obj):
+        request = self.context.get("request")
+        logged_in_user = request.user
+
+        try:
+            appointment = Appointment.objects.filter(
+                status="confirmed",
+                sender_user__in=[logged_in_user, obj.user],
+                recipient_user__in=[logged_in_user, obj.user]
+            ).latest("created_at")
+            return AppointmentSerializer(appointment).data
+        except Appointment.DoesNotExist:
+            return None
 
 class BhooswamiProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
+    appointment = serializers.SerializerMethodField()
     
     class Meta:
         model = BhooswamiProfile
         fields = "__all__"
+
+    def get_appointment(self, obj):
+        request = self.context.get("request")
+        logged_in_user = request.user
+
+        try:
+            appointment = Appointment.objects.filter(
+                status="confirmed",
+                sender_user__in=[logged_in_user, obj.user],
+                recipient_user__in=[logged_in_user, obj.user]
+            ).latest("created_at")
+            return AppointmentSerializer(appointment).data
+        except Appointment.DoesNotExist:
+            return None
 
 class StateAdminProfileSerializer(serializers.ModelSerializer):
     class Meta:
