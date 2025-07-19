@@ -8,6 +8,7 @@ from rest_framework import status,generics,permissions,serializers
 from .models import CustomUser,KrisshakProfile,BhooswamiProfile,StateAdminProfile,DistrictAdminProfile,Rating, Favorite, District, State
 from .serializers import RegisterSerializer, KrisshakProfileSerializer,BhooswamiProfileSerializer, FavoriteSerializer, DistrictSerializer, StateSerializer
 from django.contrib.auth import authenticate
+from django.contrib.auth.decorators import login_required
 from rest_framework.authtoken.models import Token
 from rest_framework.permissions import IsAuthenticated, AllowAny
 import json 
@@ -378,9 +379,7 @@ class UpdateProfileView(generics.RetrieveUpdateAPIView):
             print("🚨 Error saving profile update:", str(e))
             raise
 
-
-
-    
+  
 @csrf_exempt
 def rate_user(request):
     """Allows users to rate Krisshaks or Bhooswamis."""
@@ -414,6 +413,12 @@ def rate_user(request):
         return JsonResponse({"error": "User not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+@login_required
+def rated_users_view(request):
+    user = request.user
+    rated_ids = Rating.objects.filter(rater=user).values_list("rated_user_id", flat=True)
+    return JsonResponse({"rated_user_ids": list(rated_ids)})
 
 
 @api_view(["POST"])
