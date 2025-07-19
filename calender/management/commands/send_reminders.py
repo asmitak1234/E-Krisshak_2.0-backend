@@ -3,6 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from calender.models import CalendarEvent
 from notifications.models import Notification
+from notifications.utils import send_push_notification
 
 class Command(BaseCommand):
     help = 'Sends reminders for upcoming calendar events'
@@ -33,5 +34,12 @@ class Command(BaseCommand):
                     title=f"⏰ Reminder: '{event.title}' in 1 hour",
                     message=f"Scheduled for {event.date.strftime('%A, %b %d')} at {event.time.strftime('%I:%M %p')}."
                 )
+
+                # 🎯 Send push notification if subscription exists
+                if hasattr(event.user, "push_subscription") and event.user.push_subscription:
+                    send_push_notification(
+                        event.user.push_subscription,
+                        f"🔔 Reminder: '{event.title}' in 1 hour on {event.date.strftime('%A')} at {event.time.strftime('%I:%M %p')}"
+                    )
 
         self.stdout.write(self.style.SUCCESS(f"Processed {events.count()} upcoming events"))

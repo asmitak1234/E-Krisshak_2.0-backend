@@ -4,6 +4,8 @@ from rest_framework.response import Response
 from .models import Notification
 from .serializers import NotificationSerializer
 from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
@@ -46,3 +48,9 @@ def mark_as_read(request, category):
 
     return JsonResponse({"message": f"Marked {category} notifications as read."}, status=200)
 
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def save_subscription(request):
+    request.user.push_subscription = request.data.get("subscription")
+    request.user.save()
+    return Response({"status": "saved", "subscription": request.user.push_subscription})
