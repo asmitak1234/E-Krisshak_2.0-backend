@@ -7,7 +7,7 @@ services:
     startCommand: "gunicorn ekrisshak2.asgi:application -k uvicorn.workers.UvicornWorker"
     envVars:
       - key: DATABASE_URL
-        value: your-database-url-here
+        value: ${DATABASE_URL}
       - key: SECRET_KEY
         generateValue: true
       - key: WEB_CONCURRENCY
