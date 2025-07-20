@@ -212,6 +212,9 @@ class BhooswamiProfileUpdateView(generics.RetrieveUpdateAPIView):
 
 
 class RegisterView(APIView):
+
+    permission_classes = [AllowAny] 
+    
     def post(self, request):
         print("🔥 Step 1: Incoming data:", request.data)
 
