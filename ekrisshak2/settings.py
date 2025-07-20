@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 import os
+import ast
 from dotenv import load_dotenv
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -32,8 +33,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS","").split(",")
-
+ALLOWED_HOSTS = ast.literal_eval(os.getenv("ALLOWED_HOSTS", "[]"))
 
 # Application definition
 
@@ -254,8 +254,7 @@ DEFAULT_CURRENCY = 'INR'
 MEDIA_URL = '/media/'  # URL path for media files
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # Physical storage location
 
-CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",")
-
+CSRF_TRUSTED_ORIGINS = ast.literal_eval(os.getenv("CSRF_TRUSTED_ORIGINS", "[]"))
 
 CORS_ALLOWED_ORIGINS=[
     'http://localhost:3000',
