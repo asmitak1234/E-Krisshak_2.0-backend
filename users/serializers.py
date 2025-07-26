@@ -100,11 +100,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         print("🧬 Serializer create() called with:", validated_data)
         state = validated_data.pop("state", None)
         district = validated_data.pop("district", None)
+        password = validated_data.pop("password", None)  # ⬅️ Extract safely
 
         user = CustomUser(**validated_data)
-        user.set_password(validated_data['password'])
+        if password:
+            user.set_password(password)
         user.save()
-
+        
         if user.user_type in ["krisshak", "bhooswami", "district_admin"] and not district:
             raise serializers.ValidationError("District is required for this user type.")
 
