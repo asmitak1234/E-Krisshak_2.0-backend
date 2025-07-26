@@ -18,6 +18,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
+import traceback
+from django.conf import settings
 
 class StateListView(APIView):
     permission_classes = [AllowAny]
@@ -221,7 +223,14 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                user = serializer.save()
+                try:
+                    user = serializer.save()
+                except Exception as e:
+                    import traceback
+                    traceback.print_exc()
+                    print("🚨 Error in serializer.save():", str(e))
+                    return JsonResponse({"error": "Could not save user", "detail": str(e)}, status=500)
+ 
                 print("✅ Step 2: User saved:", user.email)
 
                 otp = ''.join(random.choices(string.digits, k=6))
@@ -234,18 +243,17 @@ class RegisterView(APIView):
                     result = send_mail(
                         subject="Verify Your Email (Ekrisshak 2.0)",
                         message=f"Your OTP is: {otp}",
-                        from_email="ekrisshak2.0emails.and.help@gmail.com",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
                         recipient_list=[user.email]
                     )
                     print("✅ Step 4: Email sent successfully:", result)
                 except Exception as email_error:
                     print("📭 Step 4: Email sending failed:", str(email_error))
-                    return Response({"error": "User created, but failed to send OTP email."}, status=500)
+                    return Response({"error": "User created, but failed to send OTP email."}, status=202)
 
                 return Response({"message": "User created and OTP sent!"}, status=201)
 
             except Exception as e:
-                import traceback
                 traceback.print_exc() 
                 print("🚨 Step X: Exception after serializer.valid():", str(e))
                 return JsonResponse({"error": "Fatal error after user creation", "detail": str(e)}, status=500)
@@ -284,7 +292,7 @@ class ForgotPasswordView(APIView):
             send_mail(
                 subject="Reset Password - Ekrisshak 2.0",
                 message=f"Your password reset OTP is: {otp}",
-                from_email="ekrisshak2.0emails.and.help@gmail.com",
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[email]
             )
             return Response({"message": "OTP sent to email."})
