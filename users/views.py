@@ -238,12 +238,12 @@ class RegisterView(APIView):
                 print("✅ Step 3: OTP set and saved")
 
                 try:
-                    result = send_mail(
-                        subject="Verify Your Email (Ekrisshak 2.0)",
-                        message=f"Your OTP is: {otp}",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[user.email]
-                    )
+                    # result = send_mail(
+                    #     subject="Verify Your Email (Ekrisshak 2.0)",
+                    #     message=f"Your OTP is: {otp}",
+                    #     from_email=settings.DEFAULT_FROM_EMAIL,
+                    #     recipient_list=[user.email]
+                    # )
                     print("✅ Step 4: Email sent successfully:", result)
                 except Exception as email_error:
                     traceback.print_exc()  # ⬅️ Optional: trace email failures too
