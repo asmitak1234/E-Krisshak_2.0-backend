@@ -38,6 +38,7 @@ ALLOWED_HOSTS = ast.literal_eval(os.getenv("ALLOWED_HOSTS", "[]"))
 # Application definition
 
 INSTALLED_APPS = [
+    'users.apps.UsersConfig',
     'rest_framework',
     'rest_framework_simplejwt',
     'django.contrib.sites',
