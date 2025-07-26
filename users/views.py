@@ -214,9 +214,8 @@ class BhooswamiProfileUpdateView(generics.RetrieveUpdateAPIView):
 
 
 class RegisterView(APIView):
+    permission_classes = [AllowAny]
 
-    permission_classes = [AllowAny] 
-    
     def post(self, request):
         print("🔥 Step 1: Incoming data:", request.data)
 
@@ -226,11 +225,10 @@ class RegisterView(APIView):
                 try:
                     user = serializer.save()
                 except Exception as e:
-                    import traceback
-                    traceback.print_exc()
+                    traceback.print_exc()  # ⬅️ This already exists — good!
                     print("🚨 Error in serializer.save():", str(e))
                     return JsonResponse({"error": "Could not save user", "detail": str(e)}, status=500)
- 
+
                 print("✅ Step 2: User saved:", user.email)
 
                 otp = ''.join(random.choices(string.digits, k=6))
@@ -248,13 +246,14 @@ class RegisterView(APIView):
                     )
                     print("✅ Step 4: Email sent successfully:", result)
                 except Exception as email_error:
+                    traceback.print_exc()  # ⬅️ Optional: trace email failures too
                     print("📭 Step 4: Email sending failed:", str(email_error))
                     return Response({"error": "User created, but failed to send OTP email."}, status=202)
 
                 return Response({"message": "User created and OTP sent!"}, status=201)
 
             except Exception as e:
-                traceback.print_exc() 
+                traceback.print_exc()  # ⬅️ YES! This is where you'll catch deeper errors
                 print("🚨 Step X: Exception after serializer.valid():", str(e))
                 return JsonResponse({"error": "Fatal error after user creation", "detail": str(e)}, status=500)
 
