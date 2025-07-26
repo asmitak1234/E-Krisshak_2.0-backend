@@ -97,6 +97,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
+        print("🧬 Serializer create() called with:", validated_data)
         state = validated_data.pop("state", None)
         district = validated_data.pop("district", None)
 

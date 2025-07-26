@@ -244,7 +244,8 @@ class RegisterView(APIView):
                     #     from_email=settings.DEFAULT_FROM_EMAIL,
                     #     recipient_list=[user.email]
                     # )
-                    print("✅ Step 4: Email sent successfully:", result)
+                    # print("✅ Step 4: Email sent successfully:", result)
+                    print("📭 Step 4: Email sending skipped")
                 except Exception as email_error:
                     traceback.print_exc()  # ⬅️ Optional: trace email failures too
                     print("📭 Step 4: Email sending failed:", str(email_error))
