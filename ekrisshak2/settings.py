@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.sites',
 
     # my apps
-    'users.apps.UsersConfig',
+    'users',
     'appointments',
     'contact',
     'calender',
