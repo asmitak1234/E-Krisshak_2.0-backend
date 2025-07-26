@@ -81,7 +81,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Enter a valid email address.")
         
         user = self.context.get("request").user
-        if CustomUser.objects.filter(email=value).exclude(id=user.id).exists():
+        if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists.")
         return value
 
@@ -103,6 +103,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = CustomUser(**validated_data)
         user.set_password(validated_data['password'])
         user.save()
+
+        if user.user_type in ["krisshak", "bhooswami", "district_admin"] and not district:
+            raise serializers.ValidationError("District is required for this user type.")
+
+        if user.user_type in ["krisshak", "bhooswami", "state_admin"] and not state:
+            raise serializers.ValidationError("State is required for this user type.")
 
         if user.user_type == "krisshak":
             KrisshakProfile.objects.create(user=user, state=state, district=district)

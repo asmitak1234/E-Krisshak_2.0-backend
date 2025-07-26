@@ -245,6 +245,8 @@ class RegisterView(APIView):
                 return Response({"message": "User created and OTP sent!"}, status=201)
 
             except Exception as e:
+                import traceback
+                traceback.print_exc() 
                 print("🚨 Step X: Exception after serializer.valid():", str(e))
                 return JsonResponse({"error": "Fatal error after user creation", "detail": str(e)}, status=500)
 
