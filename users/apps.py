@@ -1,7 +1,7 @@
 from django.apps import AppConfig
 from django.core.management import call_command
 from django.db.utils import OperationalError
-from users.models import State
+from .models import State
 
 class UsersConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
