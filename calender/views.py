@@ -35,10 +35,13 @@ class CalendarEventListCreateView(generics.ListCreateAPIView):
 
         return CalendarEvent.objects.filter(user=user)
 
-
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user, event_type='manual')
-
+        try:
+            serializer.save(user=self.request.user, event_type='manual')
+        except Exception as e:
+            import logging
+            logging.error(f"Calendar creation failed: {str(e)}")
+            raise e
 
 class CalendarEventDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CalendarEvent.objects.all()
