@@ -257,17 +257,30 @@ class RegisterView(APIView):
 
 class VerifyOTPView(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        otp = request.data.get('otp')
+        email = request.data.get('email', '').lower().strip()
+        otp = request.data.get('otp', '').strip()
+
         try:
-            user = CustomUser.objects.get(email=email)
-            if user.otp_code == otp and timezone.now() <= user.otp_expiry:
+            user = CustomUser.objects.get(email__iexact=email)
+
+            # 🔍 Logging for debugging
+            print("📧 Email received:", email)
+            print("🔢 OTP received:", otp)
+            print("✅ Stored OTP:", user.otp_code)
+            print("⏰ Expiry time:", user.otp_expiry)
+            print("🕒 Current time:", timezone.now())
+
+            # Optional: Add 30 seconds grace buffer for expiry
+            buffer = timedelta(seconds=30)
+            if otp == user.otp_code and timezone.now() <= user.otp_expiry + buffer:
                 user.is_email_verified = True
                 user.otp_code = None
                 user.otp_expiry = None
                 user.save()
                 return Response({"message": "Email verified successfully."})
-            return Response({"error": "Invalid or expired OTP."}, status=400)
+            
+            return Response({"error": "Invalid or expired OTP."}, status=401)
+
         except CustomUser.DoesNotExist:
             return Response({"error": "User not found."}, status=404)
 
