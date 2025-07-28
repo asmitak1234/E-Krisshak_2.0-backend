@@ -256,6 +256,8 @@ class RegisterView(APIView):
             return Response(serializer.errors, status=400)
 
 class VerifyOTPView(APIView):
+    permission_classes = [AllowAny]  
+    
     def post(self, request):
         email = str(request.data.get("email", "")).lower().strip()
         otp_input = str(request.data.get("otp", "")).strip()
@@ -287,7 +289,7 @@ class VerifyOTPView(APIView):
         except CustomUser.DoesNotExist:
             return Response({"error": "User not found."}, status=404)
         
-# jabtak otp verified nahi ho jaata, tb tk register naa ho, also resend otp after 1 minute timer
+# jabtak otp verified nahi ho jaata, tb tk register naa ho, also resend otp after 1 minute timer, spinner in frontend
 
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
