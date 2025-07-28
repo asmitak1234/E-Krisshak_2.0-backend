@@ -218,17 +218,11 @@ class RegisterView(APIView):
 
     def post(self, request):
         print("🔥 Step 1: Incoming data:", request.data)
+        serializer = RegisterSerializer(data=request.data, context={'request': request})
 
-        serializer = RegisterSerializer(data=request.data)
         if serializer.is_valid():
             try:
-                try:
-                    user = serializer.save()
-                except Exception as e:
-                    traceback.print_exc()  # ⬅️ This already exists — good!
-                    print("🚨 Error in serializer.save():", str(e))
-                    return JsonResponse({"error": "Could not save user", "detail": str(e)}, status=500)
-
+                user = serializer.save()
                 print("✅ Step 2: User saved:", user.email)
 
                 otp = ''.join(random.choices(string.digits, k=6))
@@ -238,25 +232,24 @@ class RegisterView(APIView):
                 print("✅ Step 3: OTP set and saved")
 
                 try:
-                    # result = send_mail(
-                    #     subject="Verify Your Email (Ekrisshak 2.0)",
-                    #     message=f"Your OTP is: {otp}",
-                    #     from_email=settings.DEFAULT_FROM_EMAIL,
-                    #     recipient_list=[user.email]
-                    # )
-                    # print("✅ Step 4: Email sent successfully:", result)
-                    print("📭 Step 4: Email sending skipped")
+                    result = send_mail(
+                        subject="Verify Your Email (Ekrisshak 2.0)",
+                        message=f"Your OTP is: {otp}",
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email]
+                    )
+                    print("✅ Step 4: Email sent:", result)
                 except Exception as email_error:
-                    traceback.print_exc()  # ⬅️ Optional: trace email failures too
-                    print("📭 Step 4: Email sending failed:", str(email_error))
+                    traceback.print_exc()
+                    print("📭 Email sending failed:", str(email_error))
                     return Response({"error": "User created, but failed to send OTP email."}, status=202)
 
                 return Response({"message": "User created and OTP sent!"}, status=201)
 
             except Exception as e:
-                traceback.print_exc()  # ⬅️ YES! This is where you'll catch deeper errors
-                print("🚨 Step X: Exception after serializer.valid():", str(e))
-                return JsonResponse({"error": "Fatal error after user creation", "detail": str(e)}, status=500)
+                traceback.print_exc()
+                print("🚨 Fatal error after user creation:", str(e))
+                return Response({"error": "Unexpected server error", "detail": str(e)}, status=500)
 
         else:
             print("❌ Step 0: Validation errors:", serializer.errors)
