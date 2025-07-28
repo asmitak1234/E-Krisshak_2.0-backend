@@ -6,49 +6,50 @@ from appointments.models import Appointment
 from contact.models import ContactMessage, Notice
 from calender.models import CalendarEvent
 from appointments.models import AppointmentRequest
-
+from redis.exceptions import ConnectionError
+import logging
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
 channel_layer = get_channel_layer()
 
+# 📡 Helper function to safely send WebSocket notifications
+def send_ws_notification(group: str, data: dict):
+    try:
+        async_to_sync(channel_layer.group_send)(
+            group,
+            {
+                "type": "send.notification",
+                "data": data,
+            },
+        )
+    except ConnectionError as e:
+        logging.error(f"Redis group_send failed for group '{group}': {str(e)}")
+
 # 🔔 New Appointment Notification
 @receiver(post_save, sender=Appointment)
 def notify_appointment(sender, instance, created, **kwargs):
-    if instance.status == 'confirmed':  # ✅ Only notify when appointment is confirmed
+    if instance.status == 'confirmed':
         for user in [instance.krisshak, instance.bhooswami]:
             notif = Notification.objects.create(
                 recipient=user,
-                sender=instance.bhooswami if instance.bhooswami else instance.krisshak, # ✅ Ensure the correct sender is set
+                sender=instance.bhooswami or instance.krisshak,
                 notification_type='appointment',
                 title="📅 Appointment Confirmed",
                 message=f"You have a confirmed appointment on {instance.date.strftime('%b %d')} at {instance.time.strftime('%I:%M %p')}"
             )
-
-            async_to_sync(channel_layer.group_send)(
-                f"user_{user.id}",
-                {
-                    "type": "send.notification",
-                    "data": {
-                        "title": notif.title,
-                        "message": notif.message,
-                        "timestamp": notif.created_at.isoformat(),
-                    },
-                },
-            )
-
+            send_ws_notification(f"user_{user.id}", {
+                "title": notif.title,
+                "message": notif.message,
+                "timestamp": notif.created_at.isoformat(),
+            })
 
 # 💬 Contact Message / Reply Notification
 @receiver(post_save, sender=ContactMessage)
 def notify_contact(sender, instance, created, **kwargs):
-    if not created:
+    if not created or instance.sender_type == "guest":
         return
 
-    # 🚫 Skip guest submissions
-    if instance.sender_type == "guest":
-        return
-
-    # 💬 Reply to existing message
     if instance.parent:
         notif = Notification.objects.create(
             recipient=instance.parent.sender,
@@ -57,21 +58,13 @@ def notify_contact(sender, instance, created, **kwargs):
             title="Reply Received",
             message=f"Someone responded to your message: {instance.subject}",
         )
-
         if notif.recipient:
-            async_to_sync(channel_layer.group_send)(
-                f"user_{notif.recipient.id}",
-                {
-                    "type": "send.notification",
-                    "data": {
-                        "title": notif.title,
-                        "message": notif.message,
-                        "timestamp": notif.created_at.isoformat(),
-                    },
-                },
-            )
+            send_ws_notification(f"user_{notif.recipient.id}", {
+                "title": notif.title,
+                "message": notif.message,
+                "timestamp": notif.created_at.isoformat(),
+            })
 
-    # 📤 New message forwarded
     elif instance.forwarded_to and instance.sender:
         notif = Notification.objects.create(
             recipient=instance.sender,
@@ -79,22 +72,14 @@ def notify_contact(sender, instance, created, **kwargs):
             title="Message Forwarded",
             message=f"Your message '{instance.subject}' has been forwarded to {instance.forwarded_to}.",
         )
-
         if notif.recipient:
-            async_to_sync(channel_layer.group_send)(
-                f"user_{notif.recipient.id}",
-                {
-                    "type": "send.notification",
-                    "data": {
-                        "title": notif.title,
-                        "message": notif.message,
-                        "timestamp": notif.created_at.isoformat(),
-                    },
-                },
-            )
+            send_ws_notification(f"user_{notif.recipient.id}", {
+                "title": notif.title,
+                "message": notif.message,
+                "timestamp": notif.created_at.isoformat(),
+            })
 
-
-# 🔔 Instant Notification When an 📆 Calendar Event is Created
+# 📅 Calendar Event Created Notification
 @receiver(post_save, sender=CalendarEvent)
 def notify_calendar_event(sender, instance, created, **kwargs):
     if created and instance.event_type == 'manual':
@@ -104,27 +89,17 @@ def notify_calendar_event(sender, instance, created, **kwargs):
             title="📌 Calendar Event Added",
             message=f"{instance.title} on {instance.date.strftime('%A, %b %d')} at {instance.time.strftime('%I:%M %p')}.",
         )
+        send_ws_notification(f"user_{notif.recipient.id}", {
+            "title": notif.title,
+            "message": notif.message,
+            "timestamp": notif.created_at.isoformat(),
+        })
 
-        async_to_sync(channel_layer.group_send)(
-            f"user_{notif.recipient.id}",
-            {
-                "type": "send.notification",
-                "data": {
-                    "title": notif.title,
-                    "message": notif.message,
-                    "timestamp": notif.created_at.isoformat(),
-                },
-            },
-        )
-
-# ⏰ **Upcoming Event Reminder Logic**
+# ⏰ Upcoming Event Reminder
 @receiver(post_save, sender=CalendarEvent)
 def notify_upcoming_event(sender, instance, **kwargs):
-    """Send reminders 1 hour before an event starts."""
     event_time = instance.time
     now_time = now().time()
-
-    # Check if the event is happening within the next hour
     if instance.date == now().date() and event_time.hour - now_time.hour == 1:
         notif = Notification.objects.create(
             recipient=instance.user,
@@ -132,46 +107,29 @@ def notify_upcoming_event(sender, instance, **kwargs):
             title="⏰ Upcoming Event Reminder",
             message=f"Reminder: {instance.title} starts at {event_time.strftime('%I:%M %p')}.",
         )
+        send_ws_notification(f"user_{notif.recipient.id}", {
+            "title": notif.title,
+            "message": notif.message,
+            "timestamp": notif.created_at.isoformat(),
+        })
 
-        async_to_sync(channel_layer.group_send)(
-            f"user_{notif.recipient.id}",
-            {
-                "type": "send.notification",
-                "data": {
-                    "title": notif.title,
-                    "message": notif.message,
-                    "timestamp": notif.created_at.isoformat(),
-                },
-            },
-        )
-
-
-# 📢 **Trigger Live Notification When a Notice is Created**
+# 📢 New Notice Notification
 @receiver(post_save, sender=Notice)
 def notify_new_notice(sender, instance, created, **kwargs):
-    """Sends real-time notification when a new notice is posted."""
     if created:
         notif = Notification.objects.create(
-            recipient=None,  # Broadcast to all relevant users
+            recipient=None,
             notification_type="notice",
             title="📢 New Notice Posted",
             message=instance.content,
         )
+        send_ws_notification("global_notice_updates", {
+            "title": notif.title,
+            "message": notif.message,
+            "timestamp": notif.created_at.isoformat(),
+        })
 
-        async_to_sync(channel_layer.group_send)(
-            "global_notice_updates",
-            {
-                "type": "send.notification",
-                "data": {
-                    "title": notif.title,
-                    "message": notif.message,
-                    "timestamp": notif.created_at.isoformat(),
-                },
-            },
-        )
-
-
-# 🔔 **Trigger Notification When a New Appointment Request is Created**
+# 🔔 Appointment Request Notification
 @receiver(post_save, sender=AppointmentRequest)
 def notify_appointment_request(sender, instance, created, **kwargs):
     if not created:
@@ -179,8 +137,6 @@ def notify_appointment_request(sender, instance, created, **kwargs):
 
     recipient = instance.recipient
     sender_user = instance.sender
-
-    # Optional: Customize the message based on who the recipient is
     role = "Krisshak" if sender_user.user_type == "krisshak" else "Bhooswami"
 
     notif = Notification.objects.create(
@@ -190,16 +146,8 @@ def notify_appointment_request(sender, instance, created, **kwargs):
         title="🔔 New Appointment Request",
         message=f"{sender_user.name} ({role}) has requested an appointment.",
     )
-
-    async_to_sync(channel_layer.group_send)(
-        f"user_{recipient.id}",
-        {
-            "type": "send.notification",
-            "data": {
-                "title": notif.title,
-                "message": notif.message,
-                "timestamp": notif.created_at.isoformat(),
-            },
-        },
-    )
-
+    send_ws_notification(f"user_{recipient.id}", {
+        "title": notif.title,
+        "message": notif.message,
+        "timestamp": notif.created_at.isoformat(),
+    })
