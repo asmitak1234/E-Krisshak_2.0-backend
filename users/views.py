@@ -258,7 +258,7 @@ class RegisterView(APIView):
 class VerifyOTPView(APIView):
     def post(self, request):
         email = request.data.get('email', '').lower().strip()
-        otp = request.data.get('otp', '').strip()
+        otp = str(request.data.get('otp', '')).strip()
 
         try:
             user = CustomUser.objects.get(email__iexact=email)
@@ -272,17 +272,21 @@ class VerifyOTPView(APIView):
 
             # Optional: Add 30 seconds grace buffer for expiry
             buffer = timedelta(seconds=30)
-            if otp == user.otp_code and timezone.now() <= user.otp_expiry + buffer:
+            stored_otp = str(user.otp_code).strip()
+
+            if stored_otp == otp and timezone.now() <= user.otp_expiry + buffer:
                 user.is_email_verified = True
                 user.otp_code = None
                 user.otp_expiry = None
                 user.save()
                 return Response({"message": "Email verified successfully."})
-            
+
             return Response({"error": "Invalid or expired OTP."}, status=401)
 
         except CustomUser.DoesNotExist:
             return Response({"error": "User not found."}, status=404)
+        
+# jabtak otp verified nahi ho jaata, tb tk register naa ho, also resend otp after 1 minute timer
 
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
