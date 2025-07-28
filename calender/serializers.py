@@ -13,7 +13,7 @@ class CalendarEventSerializer(serializers.ModelSerializer):
         return obj.date.strftime('%A') if obj.date else None
 
     def create(self, validated_data):
-        # These values will be set explicitly in perform_create
-        validated_data.pop('user', None)
-        validated_data.pop('event_type', None)
+        user = self.context['request'].user
+        validated_data['user'] = user
+        validated_data['event_type'] = 'manual'
         return CalendarEvent.objects.create(**validated_data)

@@ -34,10 +34,7 @@ class CalendarEventListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         try:
-            serializer.save(
-                user=self.request.user,
-                event_type='manual'  
-            )
+            serializer.save()  # No need to pass user/event_type here anymore
         except Exception as e:
             import logging
             logging.error(f"Calendar creation failed: {str(e)}")
