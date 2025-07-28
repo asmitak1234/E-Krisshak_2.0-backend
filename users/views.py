@@ -217,67 +217,62 @@ class RegisterView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        print("🔥 Step 1: Incoming data:", request.data)
         serializer = RegisterSerializer(data=request.data, context={'request': request})
-
         if serializer.is_valid():
             try:
                 user = serializer.save()
-                print("✅ Step 2: User saved:", user.email)
-
+                # Don't activate or verify yet
+                user.is_active = False
                 otp = ''.join(random.choices(string.digits, k=6))
                 user.otp_code = otp
                 user.otp_expiry = timezone.now() + timedelta(minutes=10)
                 user.save()
-                print("✅ Step 3: OTP set and saved")
 
-                try:
-                    result = send_mail(
-                        subject="Verify Your Email (Ekrisshak 2.0)",
-                        message=f"Your OTP is: {otp}",
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[user.email]
-                    )
-                    print("✅ Step 4: Email sent:", result)
-                except Exception as email_error:
-                    traceback.print_exc()
-                    print("📭 Email sending failed:", str(email_error))
-                    return Response({"error": "User created, but failed to send OTP email."}, status=202)
-
+                send_mail(
+                    subject="Verify Your Email (E-Krisshak 2.0)",
+                    message=f"Your OTP is: {otp}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email]
+                )
                 return Response({"message": "User created and OTP sent!"}, status=201)
 
             except Exception as e:
-                traceback.print_exc()
-                print("🚨 Fatal error after user creation:", str(e))
-                return Response({"error": "Unexpected server error", "detail": str(e)}, status=500)
+                return Response({"error": str(e)}, status=500)
+        return Response(serializer.errors, status=400)
 
-        else:
-            print("❌ Step 0: Validation errors:", serializer.errors)
-            return Response(serializer.errors, status=400)
 
 class VerifyOTPView(APIView):
-    permission_classes = [AllowAny]  
-    
+    permission_classes = [AllowAny]
+
     def post(self, request):
         email = str(request.data.get("email", "")).lower().strip()
         otp_input = str(request.data.get("otp", "")).strip()
+        resend = request.data.get("resend", False)
 
         try:
             user = CustomUser.objects.get(email__iexact=email)
+
+            if resend:
+                new_otp = ''.join(random.choices(string.digits, k=6))
+                user.otp_code = new_otp
+                user.otp_expiry = timezone.now() + timedelta(minutes=10)
+                user.save()
+                send_mail(
+                    subject="Resent OTP (Ekrisshak 2.0)",
+                    message=f"Your new OTP is: {new_otp}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email]
+                )
+                return Response({"message": "OTP resent."})
+
             stored_otp = str(user.otp_code or "").strip()
-
-            print("📧 Email received:", email)
-            print("🔢 OTP received:", otp_input)
-            print("✅ Stored OTP:", stored_otp)
-            print("⏰ Expiry:", user.otp_expiry)
-            print("🕒 Now:", timezone.now())
-
             buffer = timedelta(seconds=30)
             if (
                 otp_input == stored_otp
                 and user.otp_expiry
                 and timezone.now() <= user.otp_expiry + buffer
             ):
+                user.is_active = True
                 user.is_email_verified = True
                 user.otp_code = None
                 user.otp_expiry = None
@@ -288,8 +283,7 @@ class VerifyOTPView(APIView):
 
         except CustomUser.DoesNotExist:
             return Response({"error": "User not found."}, status=404)
-        
-# jabtak otp verified nahi ho jaata, tb tk register naa ho, also resend otp after 1 minute timer, spinner in frontend
+               
 
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
