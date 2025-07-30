@@ -105,33 +105,36 @@ class AppointmentRetrieveUpdateView(generics.RetrieveUpdateAPIView):
         return self.partial_update(request, *args, **kwargs)
 
 
-@api_view(["GET"])
+@api_view(["GET","POST"])
 @permission_classes([IsAuthenticated])
 def request_appointment(request, user_id):
-    sender = request.user
-    User = get_user_model()
-    recipient = get_object_or_404(User, id=user_id)
+    if request.method == "POST":
+        sender = request.user
+        User = get_user_model()
+        recipient = get_object_or_404(User, id=user_id)
 
-    if sender == recipient:
-        return JsonResponse({"error": "You cannot send a request to yourself."}, status=400)
+        if sender == recipient:
+            return JsonResponse({"error": "You cannot send a request to yourself."}, status=400)
 
-    existing_request = AppointmentRequest.objects.filter(
-        sender=sender, recipient=recipient, status='pending'
-    ).order_by('-request_time').first()
+        existing_request = AppointmentRequest.objects.filter(
+            sender=sender, recipient=recipient, status='pending'
+        ).order_by('-request_time').first()
 
-    if existing_request and not existing_request.is_expired():
-        return JsonResponse({"error": "Request already sent. Try again after 2 days."}, status=400)
+        if existing_request and not existing_request.is_expired():
+            return JsonResponse({"error": "Request already sent. Try again after 2 days."}, status=400)
 
-    AppointmentRequest.objects.create(sender=sender, recipient=recipient)
+        AppointmentRequest.objects.create(sender=sender, recipient=recipient)
 
-    send_mail(
-        subject="New Appointment Request",
-        message=f"{sender.email} has requested an appointment with you.",
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[recipient.email],
-    )
+        send_mail(
+            subject="New Appointment Request",
+            message=f"{sender.email} has requested an appointment with you.",
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient.email],
+        )
 
-    return JsonResponse({"message": "Appointment request sent."})
+        return JsonResponse({"message": "Appointment request sent."})
+
+    return JsonResponse({"detail": "Use POST to send a request."}, status=405)
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
