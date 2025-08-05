@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import CustomUser, KrisshakProfile, BhooswamiProfile, StateAdminProfile, DistrictAdminProfile, Favorite, District, State
 from appointments.serializers import AppointmentSerializer
-from appointments.models import Appointment
+from appointments.models import Appointment,AppointmentRequest
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 import re
@@ -133,6 +133,8 @@ class RegisterSerializer(serializers.ModelSerializer):
 class KrisshakProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     appointment = serializers.SerializerMethodField()
+    recent_request_status = serializers.SerializerMethodField()
+    recent_request_time = serializers.SerializerMethodField()
 
     class Meta:
         model = KrisshakProfile
@@ -157,10 +159,38 @@ class KrisshakProfileSerializer(serializers.ModelSerializer):
         except Appointment.DoesNotExist:
             return None
 
+    def get_recent_request_status(self, obj):
+        request = self.context.get("request")
+        logged_in_user = request.user
+
+        try:
+            req = AppointmentRequest.objects.filter(
+                sender=logged_in_user,
+                recipient=obj.user
+            ).order_by("-request_time").first()
+            return req.status if req else None
+        except Exception:
+            return None
+
+    def get_recent_request_time(self, obj):
+        request = self.context.get("request")
+        logged_in_user = request.user
+
+        try:
+            req = AppointmentRequest.objects.filter(
+                sender=logged_in_user,
+                recipient=obj.user
+            ).order_by("-request_time").first()
+            return req.request_time.isoformat() if req else None
+        except Exception:
+            return None
+
 class BhooswamiProfileSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     appointment = serializers.SerializerMethodField()
-    
+    recent_request_status = serializers.SerializerMethodField()
+    recent_request_time = serializers.SerializerMethodField()
+
     class Meta:
         model = BhooswamiProfile
         fields = "__all__"
@@ -177,6 +207,32 @@ class BhooswamiProfileSerializer(serializers.ModelSerializer):
             ).latest("created_at")
             return AppointmentSerializer(appointment).data
         except Appointment.DoesNotExist:
+            return None
+
+    def get_recent_request_status(self, obj):
+        request = self.context.get("request")
+        logged_in_user = request.user
+
+        try:
+            req = AppointmentRequest.objects.filter(
+                sender=logged_in_user,
+                recipient=obj.user
+            ).order_by("-request_time").first()
+            return req.status if req else None
+        except Exception:
+            return None
+
+    def get_recent_request_time(self, obj):
+        request = self.context.get("request")
+        logged_in_user = request.user
+
+        try:
+            req = AppointmentRequest.objects.filter(
+                sender=logged_in_user,
+                recipient=obj.user
+            ).order_by("-request_time").first()
+            return req.request_time.isoformat() if req else None
+        except Exception:
             return None
 
 class StateAdminProfileSerializer(serializers.ModelSerializer):
